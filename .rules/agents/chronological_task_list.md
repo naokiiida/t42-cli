@@ -67,10 +67,12 @@
 - [ ] Add contribution guidelines
 
 ### Agent 8: Testing & Quality Assurance
-- [ ] Write unit and integration tests for all commands
-- [ ] Test authentication and API error cases
-- [ ] Test CLI UX (help, errors, completions, JSON output)
-- [ ] Lint and format code (go fmt, go vet)
+- [~] Write unit and integration tests for all commands
+- [~] Test authentication and API error cases
+- [~] Test CLI UX (help, errors, completions, JSON output)
+- [~] Lint and format code (go fmt, go vet)
+
+### Agent 8 QA progress: see .rules/agents/8_qa.md for details
 
 ---
 

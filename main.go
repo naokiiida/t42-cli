@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
+Copyright © 2025 Naoki Iida <niida@student.42tokyo.jp>
 
 */
 package main
