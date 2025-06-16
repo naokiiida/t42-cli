@@ -6,9 +6,9 @@
 - [x] Initialize Go module and repository
 - [x] Scaffold CLI using Cobra (`cobra-cli`)
 - [x] Set up directory structure for commands and internal packages
-- [ ] Integrate huh for interactive prompts and TUI/UX polish
-- [ ] Set up configuration and credential storage (secure, cross-platform)
-- [ ] Add basic logging and error handling utilities
+- [x] Integrate huh for interactive prompts and TUI/UX polish
+- [x] Set up configuration and credential storage (secure, cross-platform)
+- [x] Add basic logging and error handling utilities
 
 ### Agent 2: API Client Core
 - [ ] Implement minimal API client (HTTP, error handling, config)
@@ -81,7 +81,7 @@
 - [ ] Implement `t42 status` (overview of session data, skills, retries)
 - [ ] Add more advanced TUI features with huh
 - [ ] Add analytics/telemetry (opt-in)
-
+- [ ] use go-keyring for OS keychain support
 ---
 
 **Key Points:**

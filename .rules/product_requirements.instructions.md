@@ -13,6 +13,7 @@
 ## 📦 Tech Stack & Build
 
 - **Language**: Go (`cobra` for CLI, `huh` for TUI/UX polish).
+- `log/slog` for logging with OpenTelemetry support
 - **Cross‑compilation**: CI builds for `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`, `windows-amd64`.
 - **Release automation**: GitHub Actions + `goreleaser`, single-archive installs per platform.
 - **README**: Show, don’t tell—feature GIFs, quick references, and real examples (see Charm’s README approach).

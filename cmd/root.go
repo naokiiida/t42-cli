@@ -6,11 +6,10 @@ package cmd
 
 import (
 	"os"
-
+	"fmt"
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 )
-
-
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -46,6 +45,37 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	// Add a hidden command for huh demo
+	huhDemoCmd := &cobra.Command{
+		Use:    "huh-demo",
+		Short:  "Run a demo of huh interactive prompt (for dev only)",
+		Hidden: true,
+		Run: func(cmd *cobra.Command, args []string) {
+			runHuhDemo()
+		},
+	}
+	rootCmd.AddCommand(huhDemoCmd)
+}
+
+// Add a stub for huh integration
+type demoFormData struct {
+	Name string
+}
+
+func runHuhDemo() {
+	var data demoFormData
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().Title("What's your name?").Value(&data.Name),
+		),
+	)
+	err := form.Run()
+	if err != nil {
+		fmt.Println("Prompt cancelled or error:", err)
+		return
+	}
+	fmt.Println("Hello,", data.Name)
 }
 
 
