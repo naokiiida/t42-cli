@@ -55,9 +55,9 @@
 ## Supporting Agents (Can Work in Parallel After Core Features Exist)
 
 ### Agent 6: Install, Distribution & CI
-- [ ] Set up CI for cross-platform builds (GitHub Actions)
-- [ ] Automate releases with goreleaser
-- [ ] Provide install scripts (e.g., `curl | sh`)
+- [x] Set up CI for cross-platform builds (GitHub Actions)
+- [x] Automate releases with goreleaser
+- [x] Provide install scripts (e.g., `curl | sh`)
 - [ ] Package for Homebrew, Scoop, .deb/.rpm, universal script
 
 ### Agent 7: Documentation & Examples

@@ -1,2 +1,27 @@
 t42-cli
 secret/
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Output of build tools
+/dist/
+/build/
+
+# Dependency directories (vendor/)
+vendor/
+
+# IDE/editor files
+.idea/
+.vscode/
+*.swp
+
+# CI/CD
+.goreleaser.yml
+dist/
+coverage.out
