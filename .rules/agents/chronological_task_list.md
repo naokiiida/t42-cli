@@ -1,42 +1,45 @@
-# t42 CLI – Chronological Task List by Autonomous Agents
+# t42 CLI – Parallel Task List by Autonomous Agents
 
-## Agent 1: Project Bootstrapper
+## Foundational Agents (Start in Parallel)
+
+### Agent 1: Project Bootstrapper
 - [ ] Initialize Go module and repository
 - [ ] Scaffold CLI using Cobra (`cobra-cli`)
 - [ ] Set up directory structure for commands and internal packages
 - [ ] Integrate huh for interactive prompts and TUI/UX polish
 - [ ] Set up configuration and credential storage (secure, cross-platform)
 - [ ] Add basic logging and error handling utilities
-- [ ] Handoff: Notify Agent 2 when scaffolding and basic infra are ready
+
+### Agent 2: API Client Core
+- [ ] Implement minimal API client (HTTP, error handling, config)
+- [ ] Expand API client: support pagination, retries, rate limits, error handling
+- [ ] Use access token in `Authorization: Bearer ...` header for all requests
+- [ ] Expose low-level `t42 api` passthrough for unsupported endpoints
 
 ---
 
-## Agent 2: Auth & Minimal API Client
-- [ ] Implement minimal API client (HTTP, error handling, config)
+## Feature Agents (Start Once API Client & Bootstrap Are Ready)
+
+### Agent 3: Authentication
 - [ ] Implement `t42 auth login` using OAuth2 Client Credentials Flow
 - [ ] Store and securely manage access tokens
 - [ ] Implement `t42 auth status` (token info, expiry, scopes, app roles)
 - [ ] Implement `t42 auth logout` (clear credentials)
 - [ ] Handle token refresh/expiry gracefully
 - [ ] Write unit and integration tests for auth flows
-- [ ] Handoff: Notify Agent 3 when auth and minimal API client are tested and stable
 
----
-
-## Agent 3: Core API Client & Project Commands
-- [ ] Expand API client: support pagination, retries, rate limits, error handling
-- [ ] Use access token in `Authorization: Bearer ...` header for all requests
+### Agent 4: Project Commands
 - [ ] Implement `t42 project list` (paginated, supports `--json`, `--web`)
 - [ ] Implement `t42 project show PROJECT` (detailed info, Git URL)
 - [ ] Implement `t42 pj clone PROJECT [-- <git flags>]`
 - [ ] Implement `t42 pj view PROJECT`
 - [ ] Add aliases (e.g., `pj` for `project`)
-- [ ] Expose low-level `t42 api` passthrough for unsupported endpoints
-- [ ] Handoff: Notify Agent 4 when core commands are functional and tested
 
 ---
 
-## Agent 4: UX, CLI Polish & Completion
+## UX & Polish Agents (Can Work in Parallel After Command Stubs Exist)
+
+### Agent 5: UX, CLI Polish & Completion
 - [ ] Write clear, actionable error messages (see Charm CLI design)
 - [ ] Ensure all commands have `--help` and piped help goes to stdout
 - [ ] Add `--json` output for scripting
@@ -46,38 +49,32 @@
 - [ ] Design for pipeline-friendliness
 - [ ] Add manpage and shell completions (`t42 completion -s <shell>`)
 - [ ] Apply playful, human branding (see Charm branding)
-- [ ] Handoff: Notify Agent 5 when CLI polish and UX are complete
 
 ---
 
-## Agent 5: Install, Distribution & CI
+## Supporting Agents (Can Work in Parallel After Core Features Exist)
+
+### Agent 6: Install, Distribution & CI
 - [ ] Set up CI for cross-platform builds (GitHub Actions)
 - [ ] Automate releases with goreleaser
 - [ ] Provide install scripts (e.g., `curl | sh`)
 - [ ] Package for Homebrew, Scoop, .deb/.rpm, universal script
-- [ ] Handoff: Notify Agent 6 when distribution pipeline is tested
 
----
-
-## Agent 6: Documentation & Examples
+### Agent 7: Documentation & Examples
 - [ ] Write a README with GIFs, quick reference, and real examples
 - [ ] Add usage examples for all commands
 - [ ] Document API integration and authentication flow
 - [ ] Add contribution guidelines
-- [ ] Handoff: Notify Agent 7 when docs are ready
 
----
-
-## Agent 7: Testing & Quality Assurance
+### Agent 8: Testing & Quality Assurance
 - [ ] Write unit and integration tests for all commands
 - [ ] Test authentication and API error cases
 - [ ] Test CLI UX (help, errors, completions, JSON output)
 - [ ] Lint and format code (go fmt, go vet)
-- [ ] Handoff: Notify Agent 8 for post-MVP features
 
 ---
 
-## Agent 8: Post-MVP / Stretch Goals
+## Post-MVP / Stretch Goals (Parallelizable)
 - [ ] Implement `t42 project register PROJECT` (sign up via POST)
 - [ ] Implement `t42 project retry PROJECT` (retry logic via PATCH)
 - [ ] Implement `t42 session PROJECT` (fetch project sessions)
@@ -86,6 +83,12 @@
 - [ ] Add analytics/telemetry (opt-in)
 
 ---
+
+**Key Points:**
+- Bootstrapper and API Client can start immediately and in parallel.
+- Auth and Project Commands can start as soon as the API client and CLI skeleton are ready.
+- UX, CI, Docs, and Testing can proceed in parallel once command stubs exist.
+- Post-MVP features can be tackled as soon as the relevant infrastructure is in place.
 
 **References:**
 - [Cobra Docs](https://github.com/spf13/cobra)
