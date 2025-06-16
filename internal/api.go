@@ -42,6 +42,11 @@ func configFilePath() (string, error) {
 	return filepath.Join(dir, "t42", "credentials.json"), nil
 }
 
+// ConfigFilePath returns the path to the config file (exported)
+func ConfigFilePath() (string, error) {
+	return configFilePath()
+}
+
 // LoadConfig loads the config from disk
 func LoadConfig() (*Config, error) {
 	path, err := configFilePath()

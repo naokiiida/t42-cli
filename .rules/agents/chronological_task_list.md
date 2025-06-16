@@ -11,9 +11,9 @@
 - [x] Add basic logging and error handling utilities
 
 ### Agent 2: API Client Core
-- [ ] Implement minimal API client (HTTP, error handling, config)
-- [ ] Expand API client: support pagination, retries, rate limits, error handling
-- [ ] Use access token in `Authorization: Bearer ...` header for all requests
+- [x] Implement minimal API client (HTTP, error handling, config)
+- [x] Expand API client: support pagination, retries, rate limits, error handling
+- [x] Use access token in `Authorization: Bearer ...` header for all requests
 - [ ] Expose low-level `t42 api` passthrough for unsupported endpoints
 
 ---
