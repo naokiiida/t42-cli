@@ -202,8 +202,36 @@ func internalConfigFilePath() (string, error) {
 
 // Helper functions for browser-based OAuth2
 func loadClientCreds(path string) (string, string, error) {
-	// TODO: load from file or OS config dir
-	return "", "", fmt.Errorf("not implemented")
+	// If a custom creds file is provided, load from there
+	if path != "" {
+		f, err := os.Open(path)
+		if err != nil {
+			return "", "", err
+		}
+		defer f.Close()
+		var creds struct {
+			ClientID     string `json:"client_id"`
+			ClientSecret string `json:"client_secret"`
+		}
+		if err := json.NewDecoder(f).Decode(&creds); err != nil {
+			return "", "", err
+		}
+		return creds.ClientID, creds.ClientSecret, nil
+	}
+	// Otherwise, use the default config loader (internal.LoadConfig)
+	cfg, err := internal.LoadConfig()
+	if err != nil {
+		return "", "", err
+	}
+	// Assume config has ClientID and ClientSecret fields (extend Config struct if needed)
+	type clientCreds interface {
+		GetClientID() string
+		GetClientSecret() string
+	}
+	if c, ok := any(cfg).(clientCreds); ok {
+		return c.GetClientID(), c.GetClientSecret(), nil
+	}
+	return "", "", fmt.Errorf("client_id and client_secret not found in config")
 }
 func randomState() string {
 	b := make([]byte, 16)

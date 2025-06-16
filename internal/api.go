@@ -30,8 +30,13 @@ import (
 // Config holds API credentials and config
 // (expand as needed for more config)
 type Config struct {
-	AccessToken string `json:"access_token"`
+	AccessToken  string `json:"access_token"`
+	ClientID     string `json:"client_id,omitempty"`
+	ClientSecret string `json:"client_secret,omitempty"`
 }
+
+func (c *Config) GetClientID() string       { return c.ClientID }
+func (c *Config) GetClientSecret() string   { return c.ClientSecret }
 
 // configFilePath returns the path to the config file
 func configFilePath() (string, error) {
