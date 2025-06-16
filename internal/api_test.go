@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 )

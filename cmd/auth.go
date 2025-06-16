@@ -1,25 +1,24 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"bytes"
 	"encoding/json"
-	"io"
-	"net/http"
-	"os"
-	"github.com/charmbracelet/huh"
-	"github.com/naokiiida/t42-cli/internal"
-	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"time"
+	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"github.com/charmbracelet/huh"
+	"github.com/naokiiida/t42-cli/internal"
+	"github.com/spf13/cobra"
 )
 
 // authCmd represents the base 'auth' command
