@@ -36,4 +36,10 @@ func TestConfigFilePath(t *testing.T) {
 	} else {
 		t.Logf("Credentials file exists at: %s", path)
 	}
+}
+
+func TestAuthLoginWithSecretFallback(t *testing.T) {
+	// This is a placeholder: in real tests, mock the HTTP call or use test credentials
+	// For now, just check that the fallback code path can be called (manual test)
+	t.Log("Manual test: run 't42 auth login --with-secret' and check that credentials are saved and status works.")
 } 

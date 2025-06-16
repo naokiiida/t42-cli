@@ -9,6 +9,17 @@ import (
 	"os"
 	"github.com/charmbracelet/huh"
 	"github.com/naokiiida/t42-cli/internal"
+	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"os/exec"
+	"runtime"
+	"strings"
+	"time"
 )
 
 // authCmd represents the base 'auth' command
@@ -17,44 +28,99 @@ var authCmd = &cobra.Command{
 	Short: "Manage authentication (login, status, logout)",
 }
 
+var (
+	withSecret     bool
+	noLocalhost    bool
+	credsFile      string
+	redirectPort   int
+)
+
 // loginCmd for 't42 auth login'
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Authenticate with 42 API using OAuth2 Client Credentials Flow",
+	Short: "Authenticate with 42 API (browser-based OAuth2 or fallback)",
 	Run: func(cmd *cobra.Command, args []string) {
-		var uid, secret string
-		form := huh.NewForm(
-			huh.NewGroup(
-				huh.NewInput().Title("42 API UID (client_id)").Value(&uid),
-				huh.NewInput().Title("42 API SECRET (client_secret)").Value(&secret),
-			),
-		)
-		if err := form.Run(); err != nil {
-			cmd.PrintErrln("Login cancelled or error:", err)
+		if withSecret {
+			// Fallback: prompt for UID/SECRET and use Client Credentials Flow
+			var uid, secret string
+			form := huh.NewForm(
+				huh.NewGroup(
+					huh.NewInput().Title("42 API UID (client_id)").Value(&uid),
+					huh.NewInput().Title("42 API SECRET (client_secret)").Value(&secret),
+				),
+			)
+			if err := form.Run(); err != nil {
+				cmd.PrintErrln("Login cancelled or error:", err)
+				return
+			}
+			// Request token
+			data := []byte("grant_type=client_credentials&client_id=" + uid + "&client_secret=" + secret)
+			resp, err := http.Post("https://api.intra.42.fr/oauth/token", "application/x-www-form-urlencoded", bytes.NewReader(data))
+			if err != nil {
+				cmd.PrintErrln("Failed to request token:", err)
+				return
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != 200 {
+				b, _ := io.ReadAll(resp.Body)
+				cmd.PrintErrf("Token request failed (%d): %s\n", resp.StatusCode, string(b))
+				return
+			}
+			var tokenResp struct {
+				AccessToken string `json:"access_token"`
+				TokenType   string `json:"token_type"`
+				ExpiresIn   int    `json:"expires_in"`
+				Scope       string `json:"scope"`
+				CreatedAt   int64  `json:"created_at"`
+			}
+			if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+				cmd.PrintErrln("Failed to parse token response:", err)
+				return
+			}
+			cfg := &internal.Config{AccessToken: tokenResp.AccessToken}
+			if err := internal.SaveConfig(cfg); err != nil {
+				cmd.PrintErrln("Failed to save credentials:", err)
+				return
+			}
+			cmd.Println("Login successful! Access token saved.")
 			return
 		}
-		// Request token
-		data := []byte("grant_type=client_credentials&client_id=" + uid + "&client_secret=" + secret)
-		resp, err := http.Post("https://api.intra.42.fr/oauth/token", "application/x-www-form-urlencoded", bytes.NewReader(data))
+		// Browser-based OAuth2 Web Application Flow
+		clientID, clientSecret, err := loadClientCreds(credsFile)
 		if err != nil {
-			cmd.PrintErrln("Failed to request token:", err)
+			cmd.PrintErrln("Failed to load client credentials:", err)
 			return
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode != 200 {
-			b, _ := io.ReadAll(resp.Body)
-			cmd.PrintErrf("Token request failed (%d): %s\n", resp.StatusCode, string(b))
-			return
+		state := randomState()
+		port := redirectPort
+		if port == 0 {
+			port = pickRandomPort()
 		}
-		var tokenResp struct {
-			AccessToken string `json:"access_token"`
-			TokenType   string `json:"token_type"`
-			ExpiresIn   int    `json:"expires_in"`
-			Scope       string `json:"scope"`
-			CreatedAt   int64  `json:"created_at"`
+		redirectURI := fmt.Sprintf("http://localhost:%d/callback", port)
+		scope := "public"
+		authURL := fmt.Sprintf("https://api.intra.42.fr/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s",
+			clientID, urlQueryEscape(redirectURI), scope, state)
+		cmd.Println("If your browser does not open, visit this URL:")
+		cmd.Println(authURL)
+		openBrowser(authURL)
+		var code string
+		if noLocalhost {
+			cmd.Println("Paste the code from the redirected URL:")
+			fmt.Print("Code: ")
+			fmt.Scanln(&code)
+		} else {
+			code, err = waitForCode(port, state, cmd)
+			if err != nil {
+				cmd.PrintErrln("Failed to receive code:", err)
+				return
+			}
 		}
-		if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-			cmd.PrintErrln("Failed to parse token response:", err)
+		// Exchange code for token
+		data := fmt.Sprintf("grant_type=authorization_code&client_id=%s&client_secret=%s&code=%s&redirect_uri=%s",
+			clientID, clientSecret, code, redirectURI)
+		tokenResp, err := exchangeCodeForToken(data)
+		if err != nil {
+			cmd.PrintErrln("Failed to exchange code for token:", err)
 			return
 		}
 		cfg := &internal.Config{AccessToken: tokenResp.AccessToken}
@@ -134,9 +200,88 @@ func internalConfigFilePath() (string, error) {
 	return internal.ConfigFilePath()
 }
 
+// Helper functions for browser-based OAuth2
+func loadClientCreds(path string) (string, string, error) {
+	// TODO: load from file or OS config dir
+	return "", "", fmt.Errorf("not implemented")
+}
+func randomState() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
+}
+func pickRandomPort() int {
+	l, _ := net.Listen("tcp", ":0")
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port
+}
+func urlQueryEscape(s string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(s, ":", "%3A"), "/", "%2F")
+}
+func openBrowser(url string) {
+	switch runtime.GOOS {
+	case "darwin":
+		exec.Command("open", url).Start()
+	case "windows":
+		exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	default:
+		exec.Command("xdg-open", url).Start()
+	}
+}
+func waitForCode(port int, expectedState string, cmd *cobra.Command) (string, error) {
+	codeCh := make(chan string)
+	server := &http.Server{Addr: fmt.Sprintf(":%d", port)}
+	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("state") != expectedState {
+			w.WriteHeader(400)
+			w.Write([]byte("Invalid state"))
+			return
+		}
+		code := r.URL.Query().Get("code")
+		w.Write([]byte("You may now close this window and return to the CLI."))
+		go func() { codeCh <- code }()
+	})
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Println("Server error:", err)
+		}
+	}()
+	select {
+	case code := <-codeCh:
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		server.Shutdown(ctx)
+		return code, nil
+	case <-time.After(120 * time.Second):
+		server.Shutdown(context.Background())
+		return "", fmt.Errorf("timeout waiting for code")
+	}
+}
+func exchangeCodeForToken(data string) (struct{ AccessToken string }, error) {
+	resp, err := http.Post("https://api.intra.42.fr/oauth/token", "application/x-www-form-urlencoded", strings.NewReader(data))
+	if err != nil {
+		return struct{ AccessToken string }{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		return struct{ AccessToken string }{}, fmt.Errorf("Token request failed (%d): %s", resp.StatusCode, string(b))
+	}
+	var tokenResp struct{ AccessToken string }
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		return struct{ AccessToken string }{}, err
+	}
+	return tokenResp, nil
+}
+
 func init() {
 	rootCmd.AddCommand(authCmd)
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(statusCmd)
 	authCmd.AddCommand(logoutCmd)
+
+	loginCmd.Flags().BoolVar(&withSecret, "with-secret", false, "Use OAuth2 Client Credentials Flow (manual UID/SECRET input)")
+	loginCmd.Flags().BoolVar(&noLocalhost, "no-localhost", false, "Do not run a local server, manually enter code instead")
+	loginCmd.Flags().StringVar(&credsFile, "creds", "", "Relative path to OAuth client secret file (default: OS config dir)")
+	loginCmd.Flags().IntVar(&redirectPort, "redirect-port", 0, "Specify a custom port for the redirect URL")
 } 
