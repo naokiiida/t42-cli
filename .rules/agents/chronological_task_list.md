@@ -3,9 +3,9 @@
 ## Foundational Agents (Start in Parallel)
 
 ### Agent 1: Project Bootstrapper
-- [ ] Initialize Go module and repository
-- [ ] Scaffold CLI using Cobra (`cobra-cli`)
-- [ ] Set up directory structure for commands and internal packages
+- [x] Initialize Go module and repository
+- [x] Scaffold CLI using Cobra (`cobra-cli`)
+- [x] Set up directory structure for commands and internal packages
 - [ ] Integrate huh for interactive prompts and TUI/UX polish
 - [ ] Set up configuration and credential storage (secure, cross-platform)
 - [ ] Add basic logging and error handling utilities
