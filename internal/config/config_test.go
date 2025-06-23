@@ -1,266 +1,510 @@
 package config
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
-	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
-// TestGetConfigDir verifies that the config directory is created correctly.
 func TestGetConfigDir(t *testing.T) {
-	tempHome := t.TempDir()
-	// Set environment variables that os.UserConfigDir() uses on different OSes.
-	// This ensures our test is isolated from the actual user's home directory.
-	t.Setenv("HOME", tempHome)             // For Linux/macOS
-	t.Setenv("XDG_CONFIG_HOME", tempHome) // Overrides HOME on Linux
-	t.Setenv("APPDATA", tempHome)         // For Windows
+	// Test development environment
+	t.Run("development environment", func(t *testing.T) {
+		os.Setenv("T42_ENV", "development")
+		defer os.Unsetenv("T42_ENV")
 
-	dir, err := GetConfigDir()
-	if err != nil {
-		t.Fatalf("GetConfigDir() error = %v", err)
-	}
+		configDir, err := GetConfigDir()
+		if err != nil {
+			t.Fatalf("GetConfigDir() error = %v", err)
+		}
 
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		t.Errorf("GetConfigDir() did not create directory: %s", dir)
-	}
-
-	// Check if the directory path ends with the application name.
-	if filepath.Base(dir) != AppName {
-		t.Errorf("GetConfigDir() path should end with %s, got %s", AppName, filepath.Base(dir))
-	}
-}
-
-// TestPaths ensures that the generated paths for config and credentials are correct.
-func TestPaths(t *testing.T) {
-	tempHome := t.TempDir()
-	t.Setenv("HOME", tempHome)
-	t.Setenv("XDG_CONFIG_HOME", tempHome)
-	t.Setenv("APPDATA", tempHome)
-
-	configDir, err := GetConfigDir()
-	if err != nil {
-		t.Fatalf("pre-test setup failed to get config dir: %v", err)
-	}
-
-	credPath, err := GetCredentialsPath()
-	if err != nil {
-		t.Fatalf("GetCredentialsPath() error = %v", err)
-	}
-	expectedCredPath := filepath.Join(configDir, CredentialsFile)
-	if credPath != expectedCredPath {
-		t.Errorf("GetCredentialsPath() = %v, want %v", credPath, expectedCredPath)
-	}
-
-	confPath, err := GetConfigPath()
-	if err != nil {
-		t.Fatalf("GetConfigPath() error = %v", err)
-	}
-	expectedConfigPath := filepath.Join(configDir, ConfigFile)
-	if confPath != expectedConfigPath {
-		t.Errorf("GetConfigPath() = %v, want %v", confPath, expectedConfigPath)
-	}
-}
-
-// TestCredentialsLifecycle tests the full Save/Load/Delete cycle for credentials.
-func TestCredentialsLifecycle(t *testing.T) {
-	tempHome := t.TempDir()
-	t.Setenv("HOME", tempHome)
-	t.Setenv("XDG_CONFIG_HOME", tempHome)
-	t.Setenv("APPDATA", tempHome)
-
-	// 1. Test loading when no file exists
-	t.Run("Load non-existent credentials", func(t *testing.T) {
-		_, err := LoadCredentials()
-		if err != ErrNotLoggedIn {
-			t.Errorf("Expected ErrNotLoggedIn, got %v", err)
+		expected := SecretDirName
+		if configDir != expected {
+			t.Errorf("GetConfigDir() = %v, want %v", configDir, expected)
 		}
 	})
 
-	// 2. Test saving credentials
-	// Use Truncate to remove monotonic clock data, ensuring DeepEqual works reliably.
-	creds := &Credentials{
-		AccessToken:  "test-access-token",
-		RefreshToken: "test-refresh-token",
-		TokenType:    "Bearer",
-		ExpiresAt:    time.Now().Add(1 * time.Hour).UTC().Truncate(time.Second),
+	// Test production environment
+	t.Run("production environment", func(t *testing.T) {
+		os.Unsetenv("T42_ENV")
+
+		configDir, err := GetConfigDir()
+		if err != nil {
+			t.Fatalf("GetConfigDir() error = %v", err)
+		}
+
+		// Should contain the app name
+		if !filepath.IsAbs(configDir) {
+			t.Errorf("GetConfigDir() should return absolute path, got %v", configDir)
+		}
+
+		if filepath.Base(configDir) != AppName {
+			t.Errorf("GetConfigDir() should end with %v, got %v", AppName, configDir)
+		}
+	})
+}
+
+func TestGetConfigFilePath(t *testing.T) {
+	// Set development environment for predictable path
+	os.Setenv("T42_ENV", "development")
+	defer os.Unsetenv("T42_ENV")
+
+	path, err := GetConfigFilePath()
+	if err != nil {
+		t.Fatalf("GetConfigFilePath() error = %v", err)
 	}
 
-	t.Run("Save and check permissions", func(t *testing.T) {
-		err := SaveCredentials(creds)
+	expected := filepath.Join(SecretDirName, ConfigFileName)
+	if path != expected {
+		t.Errorf("GetConfigFilePath() = %v, want %v", path, expected)
+	}
+}
+
+func TestGetCredentialsFilePath(t *testing.T) {
+	// Set development environment for predictable path
+	os.Setenv("T42_ENV", "development")
+	defer os.Unsetenv("T42_ENV")
+
+	path, err := GetCredentialsFilePath()
+	if err != nil {
+		t.Fatalf("GetCredentialsFilePath() error = %v", err)
+	}
+
+	expected := filepath.Join(SecretDirName, CredentialsFileName)
+	if path != expected {
+		t.Errorf("GetCredentialsFilePath() = %v, want %v", path, expected)
+	}
+}
+
+func TestGetDevelopmentEnvFilePath(t *testing.T) {
+	path := GetDevelopmentEnvFilePath()
+	expected := filepath.Join(SecretDirName, EnvFileName)
+	if path != expected {
+		t.Errorf("GetDevelopmentEnvFilePath() = %v, want %v", path, expected)
+	}
+}
+
+func TestCredentialsOperations(t *testing.T) {
+	// Set up test environment
+	os.Setenv("T42_ENV", "development")
+	defer os.Unsetenv("T42_ENV")
+
+	// Create test directory
+	testDir := "test_secret"
+	os.Setenv("T42_ENV", "development")
+	defer func() {
+		os.RemoveAll(testDir)
+		os.Unsetenv("T42_ENV")
+	}()
+
+	// Note: We're using the development environment which uses a predictable path
+
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "t42-config-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Test credentials that don't exist yet
+	t.Run("load non-existent credentials", func(t *testing.T) {
+		_, err := LoadCredentials()
+		if err == nil {
+			t.Error("LoadCredentials() should error when file doesn't exist")
+		}
+	})
+
+	// Test saving and loading credentials
+	t.Run("save and load credentials", func(t *testing.T) {
+		testCredentials := &Credentials{
+			AccessToken:      "test_access_token",
+			TokenType:        "bearer",
+			ExpiresIn:        3600,
+			RefreshToken:     "test_refresh_token",
+			Scope:            "public",
+			CreatedAt:        1640995200,
+			SecretValidUntil: 1640998800,
+		}
+
+		// Save credentials
+		err := SaveCredentials(testCredentials)
 		if err != nil {
 			t.Fatalf("SaveCredentials() error = %v", err)
 		}
 
-		path, _ := GetCredentialsPath()
-		info, err := os.Stat(path)
-		if err != nil {
-			t.Fatalf("os.Stat() on credentials file error = %v", err)
-		}
-
-		// Check permissions - should be 0600
-		if info.Mode().Perm() != 0600 {
-			t.Errorf("Credentials file permissions are %v, want 0600", info.Mode().Perm())
-		}
-	})
-
-	// 3. Test loading saved credentials
-	t.Run("Load saved credentials", func(t *testing.T) {
-		loadedCreds, err := LoadCredentials()
+		// Load credentials
+		loadedCredentials, err := LoadCredentials()
 		if err != nil {
 			t.Fatalf("LoadCredentials() error = %v", err)
 		}
-		if !reflect.DeepEqual(creds, loadedCreds) {
-			t.Errorf("Loaded credentials do not match saved ones.\nGot: %+v\nWant:%+v", loadedCreds, creds)
+
+		// Compare credentials
+		if loadedCredentials.AccessToken != testCredentials.AccessToken {
+			t.Errorf("AccessToken mismatch: got %v, want %v", loadedCredentials.AccessToken, testCredentials.AccessToken)
+		}
+		if loadedCredentials.TokenType != testCredentials.TokenType {
+			t.Errorf("TokenType mismatch: got %v, want %v", loadedCredentials.TokenType, testCredentials.TokenType)
+		}
+		if loadedCredentials.ExpiresIn != testCredentials.ExpiresIn {
+			t.Errorf("ExpiresIn mismatch: got %v, want %v", loadedCredentials.ExpiresIn, testCredentials.ExpiresIn)
 		}
 	})
 
-	// 4. Test deleting credentials
-	t.Run("Delete credentials", func(t *testing.T) {
-		err := DeleteCredentials()
+	// Test file permissions
+	t.Run("credentials file permissions", func(t *testing.T) {
+		testCredentials := &Credentials{
+			AccessToken: "test_token",
+			TokenType:   "bearer",
+		}
+
+		err := SaveCredentials(testCredentials)
+		if err != nil {
+			t.Fatalf("SaveCredentials() error = %v", err)
+		}
+
+		credentialsPath, err := GetCredentialsFilePath()
+		if err != nil {
+			t.Fatalf("GetCredentialsFilePath() error = %v", err)
+		}
+
+		fileInfo, err := os.Stat(credentialsPath)
+		if err != nil {
+			t.Fatalf("Failed to stat credentials file: %v", err)
+		}
+
+		// Check that permissions are 0600 (read/write for user only)
+		expectedPerm := os.FileMode(0600)
+		if fileInfo.Mode().Perm() != expectedPerm {
+			t.Errorf("Credentials file permissions = %v, want %v", fileInfo.Mode().Perm(), expectedPerm)
+		}
+	})
+
+	// Test deleting credentials
+	t.Run("delete credentials", func(t *testing.T) {
+		// First save some credentials
+		testCredentials := &Credentials{AccessToken: "test"}
+		err := SaveCredentials(testCredentials)
+		if err != nil {
+			t.Fatalf("SaveCredentials() error = %v", err)
+		}
+
+		// Delete credentials
+		err = DeleteCredentials()
 		if err != nil {
 			t.Fatalf("DeleteCredentials() error = %v", err)
 		}
 
-		path, _ := GetCredentialsPath()
-		_, err = os.Stat(path)
-		if !os.IsNotExist(err) {
-			t.Errorf("Credentials file should not exist after deletion, but it does.")
+		// Try to load credentials (should fail)
+		_, err = LoadCredentials()
+		if err == nil {
+			t.Error("LoadCredentials() should error after deletion")
 		}
 	})
-}
 
-// TestPreferencesLifecycle tests the Save/Load cycle for user preferences.
-func TestPreferencesLifecycle(t *testing.T) {
-	tempHome := t.TempDir()
-	t.Setenv("HOME", tempHome)
-	t.Setenv("XDG_CONFIG_HOME", tempHome)
-	t.Setenv("APPDATA", tempHome)
-
-	// 1. Test loading when no file exists (should return default)
-	t.Run("Load non-existent preferences", func(t *testing.T) {
-		prefs, err := LoadPreferences()
+	// Test deleting non-existent credentials
+	t.Run("delete non-existent credentials", func(t *testing.T) {
+		err := DeleteCredentials()
 		if err != nil {
-			t.Fatalf("LoadPreferences() error = %v", err)
+			t.Errorf("DeleteCredentials() should not error when file doesn't exist, got: %v", err)
 		}
-		if !reflect.DeepEqual(prefs, &Preferences{}) {
-			t.Errorf("Expected empty preferences, got %+v", prefs)
+	})
+}
+
+func TestConfigOperations(t *testing.T) {
+	// Set up test environment
+	os.Setenv("T42_ENV", "development")
+	defer os.Unsetenv("T42_ENV")
+
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "t42-config-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Test default config
+	t.Run("default config", func(t *testing.T) {
+		config := DefaultConfig()
+		if config.DefaultFormat != "table" {
+			t.Errorf("Default format should be 'table', got %v", config.DefaultFormat)
+		}
+		if config.Interactive != true {
+			t.Errorf("Interactive should be true by default, got %v", config.Interactive)
+		}
+		if config.APIBaseURL != "https://api.intra.42.fr" {
+			t.Errorf("API base URL should be 'https://api.intra.42.fr', got %v", config.APIBaseURL)
 		}
 	})
 
-	// 2. Test saving preferences
-	prefs := &Preferences{
-		// Add fields here for testing when they are defined in the struct
-	}
-
-	t.Run("Save and load preferences", func(t *testing.T) {
-		err := SavePreferences(prefs)
+	// Test loading non-existent config (should return defaults)
+	t.Run("load non-existent config", func(t *testing.T) {
+		config, err := LoadConfig()
 		if err != nil {
-			t.Fatalf("SavePreferences() error = %v", err)
+			t.Fatalf("LoadConfig() should not error when file doesn't exist, got: %v", err)
 		}
 
-		path, _ := GetConfigPath()
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			t.Fatalf("SavePreferences() did not create the file at %s", path)
+		// Should return default values
+		defaultConfig := DefaultConfig()
+		if config.DefaultFormat != defaultConfig.DefaultFormat {
+			t.Errorf("Should return default format when file doesn't exist")
+		}
+	})
+
+	// Test saving and loading config
+	t.Run("save and load config", func(t *testing.T) {
+		testConfig := &Config{
+			DefaultFormat: "json",
+			Interactive:   false,
+			APIBaseURL:    "https://api.example.com",
 		}
 
-		loadedPrefs, err := LoadPreferences()
+		// Save config
+		err := SaveConfig(testConfig)
 		if err != nil {
-			t.Fatalf("LoadPreferences() after saving error = %v", err)
+			t.Fatalf("SaveConfig() error = %v", err)
 		}
 
-		if !reflect.DeepEqual(prefs, loadedPrefs) {
-			t.Errorf("Loaded preferences do not match saved ones.\nGot: %+v\nWant:%+v", loadedPrefs, prefs)
+		// Load config
+		loadedConfig, err := LoadConfig()
+		if err != nil {
+			t.Fatalf("LoadConfig() error = %v", err)
+		}
+
+		// Compare configs
+		if loadedConfig.DefaultFormat != testConfig.DefaultFormat {
+			t.Errorf("DefaultFormat mismatch: got %v, want %v", loadedConfig.DefaultFormat, testConfig.DefaultFormat)
+		}
+		if loadedConfig.Interactive != testConfig.Interactive {
+			t.Errorf("Interactive mismatch: got %v, want %v", loadedConfig.Interactive, testConfig.Interactive)
+		}
+		if loadedConfig.APIBaseURL != testConfig.APIBaseURL {
+			t.Errorf("APIBaseURL mismatch: got %v, want %v", loadedConfig.APIBaseURL, testConfig.APIBaseURL)
+		}
+	})
+
+	// Test config with missing fields (should fill defaults)
+	t.Run("config with missing fields", func(t *testing.T) {
+		// Create a config file with only some fields
+		partialConfig := map[string]interface{}{
+			"default_format": "json",
+			// Missing interactive and api_base_url
+		}
+
+		configPath, err := GetConfigFilePath()
+		if err != nil {
+			t.Fatalf("GetConfigFilePath() error = %v", err)
+		}
+
+		// Ensure directory exists
+		if err := EnsureConfigDir(); err != nil {
+			t.Fatalf("EnsureConfigDir() error = %v", err)
+		}
+
+		// Write partial config
+		data, err := yaml.Marshal(partialConfig)
+		if err != nil {
+			t.Fatalf("Failed to marshal partial config: %v", err)
+		}
+
+		if err := os.WriteFile(configPath, data, 0644); err != nil {
+			t.Fatalf("Failed to write partial config: %v", err)
+		}
+
+		// Load config
+		config, err := LoadConfig()
+		if err != nil {
+			t.Fatalf("LoadConfig() error = %v", err)
+		}
+
+		// Check that defaults are filled in
+		if config.DefaultFormat != "json" {
+			t.Errorf("DefaultFormat should be preserved: got %v", config.DefaultFormat)
+		}
+		if config.APIBaseURL != "https://api.intra.42.fr" {
+			t.Errorf("APIBaseURL should be filled with default: got %v", config.APIBaseURL)
 		}
 	})
 }
 
-// TestLoadDotEnv verifies that .env file loading works for development.
-func TestLoadDotEnv(t *testing.T) {
-	// Create a temporary directory structure mimicking the project layout
-	tempProjectDir := t.TempDir()
-	secretDir := filepath.Join(tempProjectDir, "secret")
-	if err := os.Mkdir(secretDir, 0755); err != nil {
-		t.Fatalf("Failed to create temp secret dir: %v", err)
-	}
+func TestHasValidCredentials(t *testing.T) {
+	// Set up test environment
+	os.Setenv("T42_ENV", "development")
+	defer os.Unsetenv("T42_ENV")
 
-	envFilePath := filepath.Join(secretDir, ".env")
-	envContent := "TEST_KEY=TEST_VALUE\nANOTHER_KEY=123"
-	if err := os.WriteFile(envFilePath, []byte(envContent), 0644); err != nil {
-		t.Fatalf("Failed to write temp .env file: %v", err)
-	}
+	// Test with no credentials
+	t.Run("no credentials", func(t *testing.T) {
+		// Ensure no credentials exist
+		DeleteCredentials()
 
-	// Change working directory to the temp project dir so LoadDotEnv can find "secret/.env"
-	originalWD, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Failed to get working directory: %v", err)
-	}
-	if err := os.Chdir(tempProjectDir); err != nil {
-		t.Fatalf("Failed to change working directory: %v", err)
-	}
-	defer os.Chdir(originalWD) // Ensure we change back to the original directory
-
-	// Load the .env file
-	LoadDotEnv()
-
-	// Check if the environment variables are set
-	if val := os.Getenv("TEST_KEY"); val != "TEST_VALUE" {
-		t.Errorf("Expected TEST_KEY to be 'TEST_VALUE', got '%s'", val)
-	}
-	if val := os.Getenv("ANOTHER_KEY"); val != "123" {
-		t.Errorf("Expected ANOTHER_KEY to be '123', got '%s'", val)
-	}
-}
-
-// TestIsAccessTokenExpired checks the token expiry logic.
-func TestIsAccessTokenExpired(t *testing.T) {
-	t.Run("Token is not expired", func(t *testing.T) {
-		creds := &Credentials{ExpiresAt: time.Now().Add(10 * time.Minute)}
-		if creds.IsAccessTokenExpired() {
-			t.Error("Token should not be considered expired")
+		if HasValidCredentials() {
+			t.Error("HasValidCredentials() should return false when no credentials exist")
 		}
 	})
 
-	t.Run("Token is expired", func(t *testing.T) {
-		creds := &Credentials{ExpiresAt: time.Now().Add(-10 * time.Minute)}
-		if !creds.IsAccessTokenExpired() {
-			t.Error("Token should be considered expired")
+	// Test with valid credentials
+	t.Run("valid credentials", func(t *testing.T) {
+		testCredentials := &Credentials{
+			AccessToken: "valid_token",
+			TokenType:   "bearer",
+		}
+
+		err := SaveCredentials(testCredentials)
+		if err != nil {
+			t.Fatalf("SaveCredentials() error = %v", err)
+		}
+
+		if !HasValidCredentials() {
+			t.Error("HasValidCredentials() should return true when valid credentials exist")
 		}
 	})
 
-	t.Run("Token expires within the buffer", func(t *testing.T) {
-		creds := &Credentials{ExpiresAt: time.Now().Add(30 * time.Second)}
-		if !creds.IsAccessTokenExpired() {
-			t.Error("Token expiring in 30 seconds should be considered expired due to buffer")
+	// Test with empty access token
+	t.Run("empty access token", func(t *testing.T) {
+		testCredentials := &Credentials{
+			AccessToken: "",
+			TokenType:   "bearer",
+		}
+
+		err := SaveCredentials(testCredentials)
+		if err != nil {
+			t.Fatalf("SaveCredentials() error = %v", err)
+		}
+
+		if HasValidCredentials() {
+			t.Error("HasValidCredentials() should return false when access token is empty")
 		}
 	})
 }
 
-// TestCredentialsSerialization ensures that the JSON tags are correct and time is handled properly.
-func TestCredentialsSerialization(t *testing.T) {
-	// Use a fixed time to make the test deterministic
-	fixedTime := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
-	creds := &Credentials{
-		AccessToken:  "access",
-		RefreshToken: "refresh",
-		TokenType:    "Bearer",
-		ExpiresAt:    fixedTime,
-	}
+func TestEnsureConfigDir(t *testing.T) {
+	// Set up test environment
+	os.Setenv("T42_ENV", "development")
+	defer os.Unsetenv("T42_ENV")
 
-	data, err := json.Marshal(creds)
+	// Remove the directory if it exists
+	configDir, err := GetConfigDir()
 	if err != nil {
-		t.Fatalf("json.Marshal() error = %v", err)
+		t.Fatalf("GetConfigDir() error = %v", err)
 	}
+	os.RemoveAll(configDir)
 
-	var unmarshaledCreds Credentials
-	err = json.Unmarshal(data, &unmarshaledCreds)
+	// Ensure the directory
+	err = EnsureConfigDir()
 	if err != nil {
-		t.Fatalf("json.Unmarshal() error = %v", err)
+		t.Fatalf("EnsureConfigDir() error = %v", err)
 	}
 
-	if !reflect.DeepEqual(creds, &unmarshaledCreds) {
-		t.Errorf("Unmarshaled credentials do not match original.\nGot: %+v\nWant:%+v", unmarshaledCreds, creds)
+	// Check that directory exists
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		t.Errorf("Config directory should exist after EnsureConfigDir()")
 	}
+}
+
+func TestLoadDevelopmentSecrets(t *testing.T) {
+	// Create a temporary .env file for testing
+	tempDir, err := os.MkdirTemp("", "t42-secrets-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Test with missing .env file
+	t.Run("missing env file", func(t *testing.T) {
+		_, err := LoadDevelopmentSecrets()
+		if err == nil {
+			t.Error("LoadDevelopmentSecrets() should error when .env file doesn't exist")
+		}
+	})
+
+	// Test with valid .env file
+	t.Run("valid env file", func(t *testing.T) {
+		// Clear environment variables from previous tests
+		os.Unsetenv("FT_UID")
+		os.Unsetenv("FT_SECRET")
+		os.Unsetenv("REDIRECT_URL")
+		
+		// Create test .env file
+		envContent := `FT_UID=test_client_id
+FT_SECRET=test_client_secret
+REDIRECT_URL=http://localhost:3000/callback
+`
+		envPath := GetDevelopmentEnvFilePath()
+		
+		// Ensure directory exists
+		os.MkdirAll(filepath.Dir(envPath), 0755)
+		
+		err := os.WriteFile(envPath, []byte(envContent), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test .env file: %v", err)
+		}
+		defer os.Remove(envPath)
+
+		secrets, err := LoadDevelopmentSecrets()
+		if err != nil {
+			t.Fatalf("LoadDevelopmentSecrets() error = %v", err)
+		}
+
+		if secrets.ClientID != "test_client_id" {
+			t.Errorf("ClientID = %v, want %v", secrets.ClientID, "test_client_id")
+		}
+		if secrets.ClientSecret != "test_client_secret" {
+			t.Errorf("ClientSecret = %v, want %v", secrets.ClientSecret, "test_client_secret")
+		}
+		if secrets.RedirectURL != "http://localhost:3000/callback" {
+			t.Errorf("RedirectURL = %v, want %v", secrets.RedirectURL, "http://localhost:3000/callback")
+		}
+	})
+
+	// Test with missing required fields
+	t.Run("missing client id", func(t *testing.T) {
+		// Clear environment variables from previous tests
+		os.Unsetenv("FT_UID")
+		os.Unsetenv("FT_SECRET")
+		os.Unsetenv("REDIRECT_URL")
+		
+		envContent := `FT_SECRET=test_client_secret`
+		envPath := GetDevelopmentEnvFilePath()
+		
+		os.MkdirAll(filepath.Dir(envPath), 0755)
+		err := os.WriteFile(envPath, []byte(envContent), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test .env file: %v", err)
+		}
+		defer os.Remove(envPath)
+
+		_, err = LoadDevelopmentSecrets()
+		if err == nil {
+			t.Error("LoadDevelopmentSecrets() should error when FT_UID is missing")
+		}
+	})
+
+	// Test with default redirect URL
+	t.Run("default redirect url", func(t *testing.T) {
+		// Clear environment variables from previous tests
+		os.Unsetenv("FT_UID")
+		os.Unsetenv("FT_SECRET")
+		os.Unsetenv("REDIRECT_URL")
+		
+		envContent := `FT_UID=test_client_id
+FT_SECRET=test_client_secret`
+		envPath := GetDevelopmentEnvFilePath()
+		
+		os.MkdirAll(filepath.Dir(envPath), 0755)
+		err := os.WriteFile(envPath, []byte(envContent), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test .env file: %v", err)
+		}
+		defer os.Remove(envPath)
+
+		secrets, err := LoadDevelopmentSecrets()
+		if err != nil {
+			t.Fatalf("LoadDevelopmentSecrets() error = %v", err)
+		}
+
+		expectedDefault := "http://localhost:8080/callback"
+		if secrets.RedirectURL != expectedDefault {
+			t.Errorf("RedirectURL should default to %v, got %v", expectedDefault, secrets.RedirectURL)
+		}
+	})
 }

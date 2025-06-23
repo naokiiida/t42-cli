@@ -48,10 +48,10 @@ Ruby
 
 ``` ruby
 require "oauth2"
-UID = "Your application uid"
-SECRET = "Your secret token"
+FT_UID = "Your application uid"
+FT_SECRET = "Your secret token"
 # Create the client with your credentials
-client = OAuth2::Client.new(UID, SECRET, site: "https://api.intra.42.fr")
+client = OAuth2::Client.new(FT_UID, FT_SECRET, site: "https://api.intra.42.fr")
 # Get an access token
 token = client.client_credentials.get_token
 ```
@@ -59,7 +59,7 @@ token = client.client_credentials.get_token
 Requesting an access token with the client credentials flow is, in fact, just a POST request on the `/oauth/token` endpoint with a `grant_type` parameter set to `client_credentials`. If you wanted to do this with the command line, the equivalent Curl line will be:
 
 ```-bash language
-curl -X POST --data "grant_type=client_credentials&client_id=MY_AWESOME_UID&client_secret=MY_AWESOME_SECRET" https://api.intra.42.fr/oauth/token
+curl -X POST --data "grant_type=client_credentials&client_id=$FT_UID&client_secret=$FT_SECRET" https://api.intra.42.fr/oauth/token
 ```
 
 JSON

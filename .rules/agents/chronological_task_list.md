@@ -36,19 +36,38 @@ This phase focuses on creating the core, non-UI logic for configuration and API 
 - **Testing**:
     - **How**: An integration test is needed to validate the client against the live 42 API. This requires a valid access token.
     - **Steps**:
-      1.  **Get an access token**:
+      1.  **Prepare credentials**:
+          - Create a `secret/.env` file in your project root with your 42 API credentials:
+            ```
+            FT_UID=your_client_id
+            FT_SECRET=your_client_secret
+            ```
+          - These variable names (`FT_UID` and `FT_SECRET`) are used for consistency in all development and test scripts.
+      2.  **Get an access token**:
           ```sh
-          # Replace with your actual UID and SECRET
-          curl -X POST --data "grant_type=client_credentials&client_id=$MY_AWESOME_UID&client_secret=$MY_AWESOME_SECRET" https://api.intra.42.fr/oauth/token
+          # Uses FT_UID and FT_SECRET from secret/.env
+          eval $(cat secret/.env) && curl -X POST --data "grant_type=client_credentials&client_id=$FT_UID&client_secret=$FT_SECRET" https://api.intra.42.fr/oauth/token > secret/credentials.json
           ```
-      2.  **Create credentials file**: Save the JSON output from the command above to the location specified by `os.UserConfigDir()`.
-          - **macOS**: `~/Library/Application Support/t42/credentials.json`
-          - **Linux**: `~/.config/t42/credentials.json`
+          - This command will save the token JSON to `secret/credentials.json` in the format:
+            ```json
+            {
+              "access_token": "ACCESS_TOKEN",
+              "token_type": "bearer",
+              "expires_in": 2090,
+              "scope": "public",
+              "created_at": 1750672673,
+              "secret_valid_until": 1752476801
+            }
+            ```
       3.  **Run the test**:
           ```sh
-          go test ./internal/api -v
+          T42_ENV=development go test ./internal/api -v
           ```
+          - The integration test will look for `secret/credentials.json` when `T42_ENV=development` is set.
+          - If the credentials file is missing or expired, the test will be skipped with a helpful message.
     - **Verification**: The test should pass and log a snippet of the API response (e.g., from `/v2/cursus`), confirming successful authentication and data retrieval.
+    - **Reference**: See the [42 API documentation](https://api.intra.42.fr/apidoc/guides/getting_started) for details on authentication and token usage.
+    - **Note**: The API client does not generate tokens; it only uses them. Token acquisition is handled externally (e.g., via the above `curl` command or by the `auth` command in later agents).
 
 ---
 

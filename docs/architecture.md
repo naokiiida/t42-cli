@@ -73,6 +73,26 @@ This file provides the necessary credentials for developers to test the applicat
 - **Location**: `secret/.env` in the project root.
 - **Security**: This directory and its contents are listed in `.gitignore` and must never be committed to the repository.
 
+### d. Setting the `T42_ENV` Environment Variable
+
+The `T42_ENV` environment variable controls which configuration and credential paths are used by the application. This is especially important during development and testing.
+
+- **Purpose**: When `T42_ENV` is set to `development`, the CLI will use credentials and configuration files from the local `secret/` directory (e.g., `secret/credentials.json`) instead of the OS user config directory. This allows developers to safely test authentication and integration flows without affecting real user data.
+- **How to Set**: You should set `T42_ENV=development` in your shell environment before running the CLI or integration tests. For example:
+    - On Unix/macOS:
+      ```
+      export T42_ENV=development
+      ```
+    - On Windows (Command Prompt):
+      ```
+      set T42_ENV=development
+      ```
+    - On Windows (PowerShell):
+      ```
+      $env:T42_ENV="development"
+      ```
+- **When to Set**: Always set `T42_ENV=development` when running integration tests or developing locally. In production or normal user usage, do not set this variable; the CLI will default to using the user's OS-specific config directory.
+
 ## 4. Component Interaction Flow
 
 Here is a typical flow for a command like `t42 project list`:
