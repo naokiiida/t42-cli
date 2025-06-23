@@ -150,7 +150,7 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	}
 	
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		handleCallback(w, r, secrets, state, tokenChan, errorChan)
+		handleCallback(w, r, secrets, redirectURL, state, tokenChan, errorChan)
 	})
 	
 	// Start server in goroutine
@@ -406,7 +406,7 @@ func buildAuthorizationURL(clientID, redirectURL, state, scope string) string {
 	return authorizeURL + "?" + params.Encode()
 }
 
-func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.DevelopmentSecrets, expectedState string, tokenChan chan<- *config.Credentials, errorChan chan<- error) {
+func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.DevelopmentSecrets, redirectURL, expectedState string, tokenChan chan<- *config.Credentials, errorChan chan<- error) {
 	// Parse query parameters
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
@@ -440,7 +440,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.Deve
 	}
 	
 	// Exchange code for token
-	credentials, err := exchangeCodeForToken(code, secrets)
+	credentials, err := exchangeCodeForToken(code, redirectURL, secrets)
 	if err != nil {
 		http.Error(w, "Failed to exchange code for token", http.StatusInternalServerError)
 		errorChan <- fmt.Errorf("failed to exchange code for token: %w", err)
@@ -485,14 +485,14 @@ func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.Deve
 	tokenChan <- credentials
 }
 
-func exchangeCodeForToken(code string, secrets *config.DevelopmentSecrets) (*config.Credentials, error) {
+func exchangeCodeForToken(code, redirectURL string, secrets *config.DevelopmentSecrets) (*config.Credentials, error) {
 	// Prepare token request
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("client_id", secrets.ClientID)
 	data.Set("client_secret", secrets.ClientSecret)
 	data.Set("code", code)
-	data.Set("redirect_uri", secrets.RedirectURL)
+	data.Set("redirect_uri", redirectURL)
 	
 	// Make token request
 	resp, err := http.PostForm(tokenURL, data)
