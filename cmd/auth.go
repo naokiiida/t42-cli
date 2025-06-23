@@ -16,7 +16,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+
 	"github.com/charmbracelet/huh"
+	"github.com/joho/godotenv"
 	"github.com/naokiiida/t42-cli/internal"
 	"github.com/spf13/cobra"
 )
@@ -32,6 +34,7 @@ var (
 	noLocalhost    bool
 	credsFile      string
 	redirectPort   int
+	envFile        string
 )
 
 // loginCmd for 't42 auth login'
@@ -66,17 +69,24 @@ var loginCmd = &cobra.Command{
 				return
 			}
 			var tokenResp struct {
-				AccessToken string `json:"access_token"`
-				TokenType   string `json:"token_type"`
-				ExpiresIn   int    `json:"expires_in"`
-				Scope       string `json:"scope"`
-				CreatedAt   int64  `json:"created_at"`
+				AccessToken  string `json:"access_token"`
+				RefreshToken string `json:"refresh_token"`
+				ExpiresIn    int    `json:"expires_in"`
+				CreatedAt    int64  `json:"created_at"`
+				TokenType    string `json:"token_type"`
+				Scope        string `json:"scope"` // Scope is usually part of the response
 			}
 			if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 				cmd.PrintErrln("Failed to parse token response:", err)
 				return
 			}
-			cfg := &internal.Config{AccessToken: tokenResp.AccessToken}
+			cfg := &internal.Config{
+				AccessToken:  tokenResp.AccessToken,
+				RefreshToken: tokenResp.RefreshToken,
+				ExpiresIn:    tokenResp.ExpiresIn,
+				CreatedAt:    tokenResp.CreatedAt,
+				TokenType:    tokenResp.TokenType,
+			}
 			if err := internal.SaveConfig(cfg); err != nil {
 				cmd.PrintErrln("Failed to save credentials:", err)
 				return
@@ -84,12 +94,32 @@ var loginCmd = &cobra.Command{
 			cmd.Println("Login successful! Access token saved.")
 			return
 		}
+
 		// Browser-based OAuth2 Web Application Flow
-		clientID, clientSecret, err := loadClientCreds(credsFile)
+		err := godotenv.Load(envFile)
 		if err != nil {
-			cmd.PrintErrln("Failed to load client credentials:", err)
+			// If the default file is not found, it's not a fatal error yet,
+			// as the user might rely on already set env vars or provide a different file.
+			// We will check for CLIENT_ID and CLIENT_SECRET availability later.
+			if envFile != "secret/.env" || !os.IsNotExist(err) {
+				cmd.PrintErrln("Error loading .env file:", err)
+				// Potentially exit here if a custom .env file was specified but not found
+				// For now, we'll let it proceed to check the actual env vars
+			}
+		}
+
+		clientID := os.Getenv("CLIENT_ID")
+		clientSecret := os.Getenv("CLIENT_SECRET")
+
+		if clientID == "" || clientSecret == "" {
+			cmd.PrintErrln("Error: CLIENT_ID or CLIENT_SECRET not found in environment.")
+			cmd.PrintErrf("Please ensure they are set in the environment or in the .env file (default: %s, customize with --env <file>).\n", envFile)
+			cmd.PrintErrln("Example .env file content:")
+			cmd.PrintErrln("CLIENT_ID=\"your_client_id\"")
+			cmd.PrintErrln("CLIENT_SECRET=\"your_client_secret\"")
 			return
 		}
+
 		state := randomState()
 		port := redirectPort
 		if port == 0 {
@@ -122,7 +152,13 @@ var loginCmd = &cobra.Command{
 			cmd.PrintErrln("Failed to exchange code for token:", err)
 			return
 		}
-		cfg := &internal.Config{AccessToken: tokenResp.AccessToken}
+		cfg := &internal.Config{
+			AccessToken:  tokenResp.AccessToken,
+			RefreshToken: tokenResp.RefreshToken,
+			ExpiresIn:    tokenResp.ExpiresIn,
+			CreatedAt:    tokenResp.CreatedAt,
+			TokenType:    tokenResp.TokenType,
+		}
 		if err := internal.SaveConfig(cfg); err != nil {
 			cmd.PrintErrln("Failed to save credentials:", err)
 			return
@@ -284,19 +320,30 @@ func waitForCode(port int, expectedState string, cmd *cobra.Command) (string, er
 		return "", fmt.Errorf("timeout waiting for code")
 	}
 }
-func exchangeCodeForToken(data string) (struct{ AccessToken string }, error) {
+
+// FullTokenResponse defines the structure for all fields from the token endpoint.
+type FullTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	CreatedAt    int64  `json:"created_at"`
+	TokenType    string `json:"token_type"`
+	Scope        string `json:"scope"`
+}
+
+func exchangeCodeForToken(data string) (FullTokenResponse, error) {
+	var tokenResp FullTokenResponse
 	resp, err := http.Post("https://api.intra.42.fr/oauth/token", "application/x-www-form-urlencoded", strings.NewReader(data))
 	if err != nil {
-		return struct{ AccessToken string }{}, err
+		return tokenResp, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		b, _ := io.ReadAll(resp.Body)
-		return struct{ AccessToken string }{}, fmt.Errorf("Token request failed (%d): %s", resp.StatusCode, string(b))
+		return tokenResp, fmt.Errorf("Token request failed (%d): %s", resp.StatusCode, string(b))
 	}
-	var tokenResp struct{ AccessToken string }
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		return struct{ AccessToken string }{}, err
+		return tokenResp, err
 	}
 	return tokenResp, nil
 }
@@ -309,6 +356,7 @@ func init() {
 
 	loginCmd.Flags().BoolVar(&withSecret, "with-secret", false, "Use OAuth2 Client Credentials Flow (manual UID/SECRET input)")
 	loginCmd.Flags().BoolVar(&noLocalhost, "no-localhost", false, "Do not run a local server, manually enter code instead")
-	loginCmd.Flags().StringVar(&credsFile, "creds", "", "Relative path to OAuth client secret file (default: OS config dir)")
+	loginCmd.Flags().StringVar(&credsFile, "creds", "", "Relative path to OAuth client secret file (default: OS config dir) [DEPRECATED for web flow, use --env]")
 	loginCmd.Flags().IntVar(&redirectPort, "redirect-port", 0, "Specify a custom port for the redirect URL")
-} 
+	loginCmd.Flags().StringVar(&envFile, "env", "secret/.env", "Path to .env file for CLIENT_ID and CLIENT_SECRET")
+}

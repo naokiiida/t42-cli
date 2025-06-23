@@ -31,6 +31,10 @@ import (
 // (expand as needed for more config)
 type Config struct {
 	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	ExpiresIn    int    `json:"expires_in,omitempty"`
+	CreatedAt    int64  `json:"created_at,omitempty"`
+	TokenType    string `json:"token_type,omitempty"`
 	ClientID     string `json:"client_id,omitempty"`
 	ClientSecret string `json:"client_secret,omitempty"`
 }
