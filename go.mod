@@ -37,5 +37,6 @@ require (
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 // github.com/charmbracelet/huh v0.8.0 // for interactive prompts and TUI/UX polish (removed, let go get resolve)
 )
