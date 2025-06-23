@@ -1,99 +1,189 @@
-# t42 CLI – Parallel Task List by Autonomous Agents
+# t42-cli Chronological Task List (Architecture-Aligned)
 
-## Foundational Agents (Start in Parallel)
-
-### Agent 1: Project Bootstrapper
-- [x] Initialize Go module and repository
-- [x] Scaffold CLI using Cobra (`cobra-cli`)
-- [x] Set up directory structure for commands and internal packages
-- [x] Integrate huh for interactive prompts and TUI/UX polish
-- [x] Set up configuration and credential storage (secure, cross-platform)
-- [x] Add basic logging and error handling utilities
-
-### Agent 2: API Client Core
-- [x] Implement minimal API client (HTTP, error handling, config)
-- [x] Expand API client: support pagination, retries, rate limits, error handling
-- [x] Use access token in `Authorization: Bearer ...` header for all requests
-- [ ] Expose low-level `t42 api` passthrough for unsupported endpoints
+This document outlines the development plan for the `t42-cli`, organized into sequential phases. Each phase builds upon the previous one and includes explicit, reproducible testing commands to ensure quality and correctness.
 
 ---
 
-## Feature Agents (Start Once API Client & Bootstrap Are Ready)
+## Phase 1: Foundational Packages (`internal/`)
 
-### Agent 3: Authentication
-- [ ] Implement `t42 auth login` using OAuth2 Client Credentials Flow
-- [ ] Store and securely manage access tokens
-- [ ] Implement `t42 auth status` (token info, expiry, scopes, app roles)
-- [ ] Implement `t42 auth logout` (clear credentials)
-- [ ] Handle token refresh/expiry gracefully
-- [ ] Write unit and integration tests for auth flows
+This phase focuses on creating the core, non-UI logic for configuration and API communication.
 
-### Agent 4: Project Commands
-- [ ] Implement `t42 project list` (paginated, supports `--json`, `--web`)
-- [ ] Implement `t42 project show PROJECT` (detailed info, Git URL)
-- [ ] Implement `t42 pj clone PROJECT [-- <git flags>]`
-- [ ] Implement `t42 pj view PROJECT`
-- [ ] Add aliases (e.g., `pj` for `project`)
+### Agent 1: Configuration Manager
+- **Goal**: Implement robust, secure, and layered configuration management.
+- **Tasks**:
+    - [ ] **`internal/config/paths.go`**: Implement functions to resolve OS-specific paths for config files (`os.UserConfigDir`).
+    - [ ] **`internal/config/config.go`**:
+        - [ ] Implement loading/saving of session credentials (`credentials.json`) with secure `0600` file permissions.
+        - [ ] Implement loading/saving of user preferences (`config.yaml`).
+        - [ ] Implement loading of development secrets from `secret/.env`.
+- **Testing**:
+    - **How**: Unit tests are required to verify all configuration logic without building the full application.
+    - **Command**:
+      ```sh
+      go test ./internal/config
+      ```
+    - **Verification**: The test suite should pass, confirming that paths are resolved correctly for the host OS and that files are read and written with the correct permissions and content.
 
----
-
-## UX & Polish Agents (Can Work in Parallel After Command Stubs Exist)
-
-### Agent 5: UX, CLI Polish & Completion
-- [ ] Write clear, actionable error messages (see Charm CLI design)
-- [ ] Ensure all commands have `--help` and piped help goes to stdout
-- [ ] Add `--json` output for scripting
-- [ ] Add progress indicators (spinner/progress bar via huh)
-- [ ] Default output <80 columns, add `--wide` option
-- [ ] Ensure idempotent operations
-- [ ] Design for pipeline-friendliness
-- [ ] Add manpage and shell completions (`t42 completion -s <shell>`)
-- [ ] Apply playful, human branding (see Charm branding)
-
----
-
-## Supporting Agents (Can Work in Parallel After Core Features Exist)
-
-### Agent 6: Install, Distribution & CI
-- [x] Set up CI for cross-platform builds (GitHub Actions)
-- [x] Automate releases with goreleaser
-- [x] Provide install scripts (e.g., `curl | sh`)
-- [ ] Package for Homebrew, Scoop, .deb/.rpm, universal script
-
-### Agent 7: Documentation & Examples
-- [ ] Write a README with GIFs, quick reference, and real examples
-- [ ] Add usage examples for all commands
-- [ ] Document API integration and authentication flow
-- [ ] Add contribution guidelines
-
-### Agent 8: Testing & Quality Assurance
-- [~] Write unit and integration tests for all commands
-- [~] Test authentication and API error cases
-- [~] Test CLI UX (help, errors, completions, JSON output)
-- [~] Lint and format code (go fmt, go vet)
-
-### Agent 8 QA progress: see .rules/agents/8_qa.md for details
+### Agent 2: 42 API Client
+- **Goal**: Create a reusable, low-level client for all 42 API interactions.
+- **Tasks**:
+    - [ ] **`internal/api/types.go`**: Define Go structs for common API responses (e.g., `Token`, `Project`, `ErrorResponse`).
+    - [ ] **`internal/api/api.go`**:
+        - [ ] Implement `NewClient` to initialize the client with an access token.
+        - [ ] Create a core request method that adds the `Authorization: Bearer <token>` header.
+        - [ ] Implement logic to handle API pagination and rate limiting.
+        - [ ] Add structured error handling for 42 API error responses.
+- **Testing**:
+    - **How**: An integration test is needed to validate the client against the live 42 API. This requires a valid access token.
+    - **Steps**:
+      1.  **Get an access token**:
+          ```sh
+          # Replace with your actual UID and SECRET
+          curl -X POST --data "grant_type=client_credentials&client_id=$MY_AWESOME_UID&client_secret=$MY_AWESOME_SECRET" https://api.intra.42.fr/oauth/token
+          ```
+      2.  **Create credentials file**: Save the JSON output from the command above to the location specified by `os.UserConfigDir()`.
+          - **macOS**: `~/Library/Application Support/t42/credentials.json`
+          - **Linux**: `~/.config/t42/credentials.json`
+      3.  **Run the test**:
+          ```sh
+          go test ./internal/api -v
+          ```
+    - **Verification**: The test should pass and log a snippet of the API response (e.g., from `/v2/cursus`), confirming successful authentication and data retrieval.
 
 ---
 
-## Post-MVP / Stretch Goals (Parallelizable)
-- [ ] Implement `t42 project register PROJECT` (sign up via POST)
-- [ ] Implement `t42 project retry PROJECT` (retry logic via PATCH)
-- [ ] Implement `t42 session PROJECT` (fetch project sessions)
-- [ ] Implement `t42 status` (overview of session data, skills, retries)
-- [ ] Add more advanced TUI features with huh
-- [ ] Add analytics/telemetry (opt-in)
-- [ ] use go-keyring for OS keychain support
+## Phase 2: CLI Scaffolding & Authentication
+
+This phase builds the user-facing command structure and implements the primary authentication flow.
+
+### Agent 3: CLI Bootstrapper
+- **Goal**: Set up the main application skeleton using Cobra.
+- **Tasks**:
+    - [ ] **`main.go`**: Create the main entry point to execute the root command.
+    - [ ] **`cmd/root.go`**: Initialize the root Cobra command (`t42`), add global flags (`--json`), and integrate logging.
+- **Testing**:
+    - **How**: Build the CLI and run its most basic commands.
+    - **Commands**:
+      ```sh
+      go build .
+      ./t42-cli --help
+      ./t42-cli --version
+      ```
+    - **Verification**: The commands should execute without errors and print the help text and version number.
+
+### Agent 4: Authentication Commands
+- **Goal**: Implement the complete user authentication and session management lifecycle.
+- **Tasks**:
+    - [ ] **`cmd/auth.go`**: Create the `auth` command and its subcommands: `login`, `logout`, `status`.
+    - [ ] **`auth login`**: Implement the OAuth2 Web Application Flow, including the local callback server.
+    - [ ] **`auth logout`**: Implement credential file deletion.
+    - [ ] **`auth status`**: Implement token info fetching and display.
+- **Testing**:
+    - **How**: Perform a full, end-to-end authentication lifecycle test.
+    - **Steps**:
+      1.  **Prepare**: Create `secret/.env` with your `CLIENT_ID` and `REDIRECT_URL`.
+      2.  **Build**: `go build .`
+      3.  **Login**:
+          ```sh
+          ./t42-cli auth login
+          ```
+          - **Verification**: The browser should open. After you authorize the app, `credentials.json` should be created in your user config directory.
+      4.  **Check Status**:
+          ```sh
+          ./t42-cli auth status
+          ```
+          - **Verification**: The command should print your token's scope, expiry, and other details.
+      5.  **Logout**:
+          ```sh
+          ./t42-cli auth logout
+          ```
+          - **Verification**: The `credentials.json` file should be deleted.
+
 ---
 
-**Key Points:**
-- Bootstrapper and API Client can start immediately and in parallel.
-- Auth and Project Commands can start as soon as the API client and CLI skeleton are ready.
-- UX, CI, Docs, and Testing can proceed in parallel once command stubs exist.
-- Post-MVP features can be tackled as soon as the relevant infrastructure is in place.
+## Phase 3: Core Feature Commands
 
-**References:**
-- [Cobra Docs](https://github.com/spf13/cobra)
-- [huh Docs](https://github.com/charmbracelet/huh)
-- [42 API Guide](https://api.intra.42.fr/apidoc/guides/getting_started)
-- [Charm CLI/README/Branding](../charm.md) 
+With authentication in place, this phase implements the core project-related features.
+
+### Agent 5: Project Commands
+- **Goal**: Build the `project` subcommand to manage user projects.
+- **Tasks**:
+    - [ ] **`cmd/project.go`**: Create the `project` command (`pj` alias) and its subcommands: `list`, `show`, `clone`.
+- **Testing**:
+    - **How**: After logging in, test each subcommand to ensure it interacts with the API correctly.
+    - **Prerequisite**: You must be logged in. Run `./t42-cli auth login`.
+    - **Commands**:
+      ```sh
+      # Test list command (table output)
+      ./t42-cli project list
+
+      # Test list command (JSON output)
+      ./t42-cli project list --json
+
+      # Test show command with a valid project slug
+      ./t42-cli pj show libft
+
+      # Test clone command
+      ./t42-cli pj clone libft
+      ```
+    - **Verification**:
+        - `list` and `show` should display formatted data from the API.
+        - `clone` should create a new directory named `libft` containing the project's Git repository.
+
+---
+
+## Phase 4: Polish, Distribution & Documentation
+
+This final phase focuses on improving the user experience, automating builds, and creating documentation.
+
+### Agent 6: UX & Polish
+- **Goal**: Refine the CLI to be professional, intuitive, and enjoyable to use.
+- **Tasks**:
+    - [ ] **Completions**: Implement `t42 completion`.
+    - [ ] **Help Text**: Review and improve all command help messages.
+    - [ ] **Progress Indicators**: Add `huh` spinners for all network operations.
+- **Testing**:
+    - **How**: Manually verify the UX enhancements.
+    - **Commands**:
+      ```sh
+      # Generate and test completion script
+      ./t42-cli completion zsh > _t42-cli
+      source ./_t42-cli
+      # (try tabbing after ./t42-cli p<TAB>)
+
+      # Review help text for clarity
+      ./t42-cli project clone --help
+      ```
+    - **Verification**: Completions should work, and help text should be clear and accurate. Spinners should appear during commands like `project list`.
+
+### Agent 7: CI/CD & Release
+- **Goal**: Automate the build, test, and release process.
+- **Tasks**:
+    - [ ] **CI**: Set up a GitHub Actions workflow to run `go build`, `go test`, and `go vet`.
+    - [ ] **Release**: Configure `.goreleaser.yml` for cross-platform builds.
+    - [ ] **Installation**: Create an `install.sh` script.
+- **Testing**:
+    - **How**: Run the release process locally and test the generated artifacts.
+    - **Commands**:
+      ```sh
+      # Run a local, temporary release to the dist/ folder
+      goreleaser release --snapshot --clean
+
+      # Test the install script (requires a real release)
+      # curl -sSL "https://github.com/user/repo/releases/latest/download/install.sh" | sh
+      ```
+    - **Verification**: The `dist/` directory should contain binaries for all target platforms. The CI pipeline should pass on GitHub.
+
+### Agent 8: Documentation
+- **Goal**: Create a high-quality README that encourages adoption.
+- **Tasks**:
+    - [ ] Write a comprehensive `README.md`.
+    - [ ] Use `vhs` to create animated GIFs demonstrating key features.
+- **Testing**:
+    - **How**: Manually review the documentation and generate the assets.
+    - **Commands**:
+      ```sh
+      # Example for generating a GIF from a tape file
+      vhs < docs/tapes/auth.tape
+      ```
+    - **Verification**: The `README.md` should render correctly on GitHub, and the GIFs should accurately demonstrate the CLI's functionality.
