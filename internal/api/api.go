@@ -438,6 +438,22 @@ func (c *Client) IsAuthenticated(ctx context.Context) bool {
 	return err == nil
 }
 
+// GetProjectUser returns information about a specific project user by ID
+func (c *Client) GetProjectUser(ctx context.Context, projectUserID int) (*ProjectUser, error) {
+	endpoint := fmt.Sprintf("/v2/projects_users/%d", projectUserID)
+	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	
+	var projectUser ProjectUser
+	if err := c.handleResponse(resp, &projectUser); err != nil {
+		return nil, err
+	}
+	
+	return &projectUser, nil
+}
+
 // GetToken returns the current access token
 func (c *Client) GetToken() string {
 	return c.token
