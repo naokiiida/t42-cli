@@ -12,13 +12,13 @@ import (
 
 // Credentials represents the OAuth2 token response from 42 API
 type Credentials struct {
-	AccessToken  string `json:"access_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	Scope        string `json:"scope"`
-	CreatedAt    int64  `json:"created_at"`
-	SecretValidUntil int64 `json:"secret_valid_until,omitempty"`
+	AccessToken      string `json:"access_token"`
+	TokenType        string `json:"token_type"`
+	ExpiresIn        int    `json:"expires_in"`
+	RefreshToken     string `json:"refresh_token,omitempty"`
+	Scope            string `json:"scope"`
+	CreatedAt        int64  `json:"created_at"`
+	SecretValidUntil int64  `json:"secret_valid_until,omitempty"`
 }
 
 // Config represents user preferences and settings
@@ -210,7 +210,7 @@ func LoadDevelopmentSecrets() (*DevelopmentSecrets, error) {
 
 	// RedirectURL is optional for some flows
 	if secrets.RedirectURL == "" {
-		secrets.RedirectURL = "http://localhost:8080/callback"
+		secrets.RedirectURL = "http://127.0.0.1:8080/callback"
 	}
 
 	return secrets, nil

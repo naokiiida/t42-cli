@@ -48,9 +48,12 @@ t42 completion # shell completion
 
 ### `t42 project`
 - `t42 project list`: List your subscribed projects with statuses (paginated, supports `--json` and `--web`).
-- `t42 project show PROJECT`: Detailed info incl. Git URL.
+- `t42 project show PROJECT`: Detailed info incl. Git URL, Session Status, Teammates, evaluations, final mark, repository url
 - `t42 pj clone PROJECT [-- <git flags>]`: Clone your latest project repo, passing extra flags to `git clone`.
-- `t42 pj view PROJECT`: Display project description.
+- `t42 pj view PROJECT`: Display project description, and subject pdf URL
+- `t42 pj evaluate `: show interactive view of all tasks as a reviewer
+- `t42 pj evaluate PROJECT`: clone specified evaluation project
+- `t42 pj evaluate --latest`: clone latest evaluation project repo
 
 ### `t42 completion`
 - Generate shell completion scripts for bash/zsh/fish: `t42 completion -s <shell>`

@@ -20,7 +20,7 @@ t42-cli/
 ├── .rules/               # Project documentation and agent instructions
 ├── cmd/                  # All CLI commands, one file per command
 │   ├── auth.go           # `t42 auth` command
-│   ├── project.go        # `t42 project` command
+│   ├── project.go        # `t42 project` command (includes clone-mine for repo_url)
 │   └── root.go           # Root command setup (`t42`)
 ├── docs/                 # Project documentation
 │   └── architecture.md   # This file
@@ -38,7 +38,7 @@ t42-cli/
 
 - **`cmd/`**: Contains all user-facing commands built with `cobra`. Each command is responsible for parsing flags, handling user input (via `huh`), and calling the appropriate `internal` packages to perform its task. It should contain minimal business logic.
 - **`internal/`**: This is the core of the application.
-    - **`internal/api`**: A dedicated package that acts as a wrapper around the 42 API. It handles HTTP requests, authentication (attaching the bearer token), pagination, rate limiting, and parsing JSON responses into Go structs. All API interactions from the `cmd/` layer must go through this client.
+    - **`internal/api`**: A dedicated package that acts as a wrapper around the 42 API. It handles HTTP requests, authentication (attaching the bearer token), pagination, rate limiting, and parsing JSON responses into Go structs. All API interactions from the `cmd/` layer must go through this client. This includes access to project user data with team repositories via the `repo_url` field.
     - **`internal/config`**: Manages loading and saving all configuration and credential files. It provides a simple interface for the rest of the application to access configuration values without needing to know the underlying storage details.
 - **`secret/`**: This directory is explicitly for development and is included in `.gitignore`. The `.env` file within it stores the `CLIENT_ID` and other secrets required to run the application locally for testing the OAuth authentication flow. This ensures that developer secrets are never committed to version control.
 
@@ -113,3 +113,17 @@ Here is a typical flow for a command like `t42 project list`:
     - Receives the list of projects from the API client.
     - Formats the data for display in the terminal (e.g., as a table).
     - If an error occurred at any stage, it prints a user-friendly error message to `stderr`.
+
+### Repository Cloning with `repo_url`
+
+For commands that need to access individual team repositories (like `t42 project clone-mine`), the flow involves additional API calls:
+
+1. **User**: Runs `t42 project clone-mine libft`.
+2. **API Interaction**:
+   - First, the command calls `GetMe()` to get the current user information.
+   - Then, it calls `ListUserProjects()` to find the specified project in the user's project list.
+   - Next, it calls `GetProjectUser()` using the `/v2/projects_users/:id` endpoint to get detailed team information.
+   - From the team data, it extracts the `repo_url` field which contains the Git repository URL for the user's team submission.
+3. **Git Clone**: The command uses the `repo_url` (not the base project `git_url`) to clone the user's actual submission repository.
+
+This approach ensures that users clone their own team repositories rather than the base project template, which is crucial for accessing their actual work and submissions.

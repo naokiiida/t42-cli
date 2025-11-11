@@ -423,17 +423,17 @@ func TestLoadDevelopmentSecrets(t *testing.T) {
 		os.Unsetenv("FT_UID")
 		os.Unsetenv("FT_SECRET")
 		os.Unsetenv("REDIRECT_URL")
-		
+
 		// Create test .env file
 		envContent := `FT_UID=test_client_id
 FT_SECRET=test_client_secret
 REDIRECT_URL=http://localhost:3000/callback
 `
 		envPath := GetDevelopmentEnvFilePath()
-		
+
 		// Ensure directory exists
 		os.MkdirAll(filepath.Dir(envPath), 0755)
-		
+
 		err := os.WriteFile(envPath, []byte(envContent), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test .env file: %v", err)
@@ -462,10 +462,10 @@ REDIRECT_URL=http://localhost:3000/callback
 		os.Unsetenv("FT_UID")
 		os.Unsetenv("FT_SECRET")
 		os.Unsetenv("REDIRECT_URL")
-		
+
 		envContent := `FT_SECRET=test_client_secret`
 		envPath := GetDevelopmentEnvFilePath()
-		
+
 		os.MkdirAll(filepath.Dir(envPath), 0755)
 		err := os.WriteFile(envPath, []byte(envContent), 0644)
 		if err != nil {
@@ -485,11 +485,11 @@ REDIRECT_URL=http://localhost:3000/callback
 		os.Unsetenv("FT_UID")
 		os.Unsetenv("FT_SECRET")
 		os.Unsetenv("REDIRECT_URL")
-		
+
 		envContent := `FT_UID=test_client_id
 FT_SECRET=test_client_secret`
 		envPath := GetDevelopmentEnvFilePath()
-		
+
 		os.MkdirAll(filepath.Dir(envPath), 0755)
 		err := os.WriteFile(envPath, []byte(envContent), 0644)
 		if err != nil {
@@ -502,7 +502,7 @@ FT_SECRET=test_client_secret`
 			t.Fatalf("LoadDevelopmentSecrets() error = %v", err)
 		}
 
-		expectedDefault := "http://localhost:8080/callback"
+		expectedDefault := "http://127.0.0.1:8080/callback"
 		if secrets.RedirectURL != expectedDefault {
 			t.Errorf("RedirectURL should default to %v, got %v", expectedDefault, secrets.RedirectURL)
 		}
