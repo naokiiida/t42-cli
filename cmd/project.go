@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/naokiiida/t42-cli/internal/api"
-	"github.com/naokiiida/t42-cli/internal/config"
 )
 
 var projectCmd = &cobra.Command{
@@ -58,11 +57,27 @@ directory named after the project slug.`,
 	RunE: runCloneProject,
 }
 
+var cloneMineCmd = &cobra.Command{
+	Use:   "clone-mine <project-slug> [directory]",
+	Short: "Clone your project repository",
+	Long: `Clone your own project repository to your local machine.
+
+This command finds your team's repository for the specified project
+and clones it using the repo_url from your team data. If you have
+multiple teams for the same project, it will use the most recent one.
+
+If no directory is specified, the project will be cloned into a
+directory named after the project slug with your login as suffix.`,
+	Args: cobra.RangeArgs(1, 2),
+	RunE: runCloneMine,
+}
+
 func init() {
 	// Add project subcommands
 	projectCmd.AddCommand(listProjectsCmd)
 	projectCmd.AddCommand(showProjectCmd)
 	projectCmd.AddCommand(cloneProjectCmd)
+	projectCmd.AddCommand(cloneMineCmd)
 	
 	// Add project command to root
 	rootCmd.AddCommand(projectCmd)
@@ -77,21 +92,20 @@ func init() {
 	// Clone command flags
 	cloneProjectCmd.Flags().Bool("no-clone", false, "Show clone command without executing")
 	cloneProjectCmd.Flags().Bool("force", false, "Force clone even if directory exists")
+	
+	// Clone mine command flags
+	cloneMineCmd.Flags().Bool("no-clone", false, "Show clone command without executing")
+	cloneMineCmd.Flags().Bool("force", false, "Force clone even if directory exists")
+	cloneMineCmd.Flags().Bool("latest", true, "Use the latest team (default: true)")
 }
 
 func runListProjects(cmd *cobra.Command, args []string) error {
-	// Check authentication
-	if !config.HasValidCredentials() {
-		return fmt.Errorf("not logged in - run 't42 auth login' first")
-	}
-	
-	// Load credentials and create client
-	credentials, err := config.LoadCredentials()
+	// Create API client with automatic token refresh
+	client, err := NewAPIClient()
 	if err != nil {
-		return fmt.Errorf("failed to load credentials: %w", err)
+		return err
 	}
-	
-	client := api.NewClient(credentials.AccessToken)
+
 	ctx := context.Background()
 	
 	// Get flags
@@ -159,20 +173,14 @@ func runListProjects(cmd *cobra.Command, args []string) error {
 }
 
 func runShowProject(cmd *cobra.Command, args []string) error {
-	// Check authentication
-	if !config.HasValidCredentials() {
-		return fmt.Errorf("not logged in - run 't42 auth login' first")
-	}
-	
 	projectSlug := args[0]
-	
-	// Load credentials and create client
-	credentials, err := config.LoadCredentials()
+
+	// Create API client with automatic token refresh
+	client, err := NewAPIClient()
 	if err != nil {
-		return fmt.Errorf("failed to load credentials: %w", err)
+		return err
 	}
-	
-	client := api.NewClient(credentials.AccessToken)
+
 	ctx := context.Background()
 	
 	// Get project by slug
@@ -192,27 +200,21 @@ func runShowProject(cmd *cobra.Command, args []string) error {
 }
 
 func runCloneProject(cmd *cobra.Command, args []string) error {
-	// Check authentication
-	if !config.HasValidCredentials() {
-		return fmt.Errorf("not logged in - run 't42 auth login' first")
-	}
-	
 	projectSlug := args[0]
 	var targetDir string
-	
+
 	if len(args) > 1 {
 		targetDir = args[1]
 	} else {
 		targetDir = projectSlug
 	}
-	
-	// Load credentials and create client
-	credentials, err := config.LoadCredentials()
+
+	// Create API client with automatic token refresh
+	client, err := NewAPIClient()
 	if err != nil {
-		return fmt.Errorf("failed to load credentials: %w", err)
+		return err
 	}
-	
-	client := api.NewClient(credentials.AccessToken)
+
 	ctx := context.Background()
 	
 	// Get project details
@@ -432,6 +434,192 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+func runCloneMine(cmd *cobra.Command, args []string) error {
+	projectSlug := args[0]
+
+	// Create API client with automatic token refresh
+	client, err := NewAPIClient()
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	
+	// Get current user
+	user, err := client.GetMe(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get user info: %w", err)
+	}
+	
+	// Find the project in user's projects
+	userProjects, _, err := client.ListUserProjects(ctx, user.ID, &api.ListUserProjectsOptions{
+		PerPage: 100, // Get enough to find the project
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get user projects: %w", err)
+	}
+	
+	var targetProjectUser *api.ProjectUser
+	for _, pu := range userProjects {
+		if pu.Project.Slug == projectSlug {
+			targetProjectUser = &pu
+			break
+		}
+	}
+	
+	if targetProjectUser == nil {
+		return fmt.Errorf("project '%s' not found in your projects", projectSlug)
+	}
+	
+	// Get full project user details to access teams
+	fullProjectUser, err := client.GetProjectUser(ctx, targetProjectUser.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get project user details: %w", err)
+	}
+	
+	// Find the team with repo_url
+	var repoURL string
+	var teamName string
+	
+	// Use latest team by default, or find the first one with a repo_url
+	latest, _ := cmd.Flags().GetBool("latest")
+	
+	if latest && len(fullProjectUser.Teams) > 0 {
+		// Use the most recent team (teams are usually ordered by creation date)
+		team := fullProjectUser.Teams[len(fullProjectUser.Teams)-1]
+		if team.RepoURL != "" {
+			repoURL = team.RepoURL
+			teamName = team.Name
+		}
+	}
+	
+	// If no repo URL found from latest, try all teams
+	if repoURL == "" {
+		for _, team := range fullProjectUser.Teams {
+			if team.RepoURL != "" {
+				repoURL = team.RepoURL
+				teamName = team.Name
+				break
+			}
+		}
+	}
+	
+	if repoURL == "" {
+		return fmt.Errorf("no repository URL found for project '%s' in your teams", projectSlug)
+	}
+	
+	// Determine target directory
+	var targetDir string
+	if len(args) > 1 {
+		targetDir = args[1]
+	} else {
+		targetDir = fmt.Sprintf("%s-%s", projectSlug, user.Login)
+	}
+	
+	// Get flags
+	noClone, _ := cmd.Flags().GetBool("no-clone")
+	force, _ := cmd.Flags().GetBool("force")
+	
+	// Check if directory exists
+	if _, err := os.Stat(targetDir); err == nil && !force {
+		if GetJSONOutput() {
+			fmt.Printf(`{"error":"Directory '%s' already exists. Use --force to override."}%s`, targetDir, "\n")
+			return nil
+		} else {
+			var overwrite bool
+			err := huh.NewConfirm().
+				Title(fmt.Sprintf("Directory '%s' already exists", targetDir)).
+				Description("Do you want to remove it and clone fresh?").
+				Value(&overwrite).
+				Run()
+			
+			if err != nil {
+				return fmt.Errorf("failed to get user confirmation: %w", err)
+			}
+			
+			if !overwrite {
+				fmt.Println("Clone cancelled.")
+				return nil
+			}
+			
+			// Remove existing directory
+			if err := os.RemoveAll(targetDir); err != nil {
+				return fmt.Errorf("failed to remove existing directory: %w", err)
+			}
+		}
+	}
+	
+	// Prepare git clone command
+	gitCmd := []string{"git", "clone", repoURL, targetDir}
+	
+	if noClone || GetJSONOutput() {
+		result := map[string]interface{}{
+			"project":     fullProjectUser.Project.Name,
+			"slug":        fullProjectUser.Project.Slug,
+			"team_name":   teamName,
+			"repo_url":    repoURL,
+			"directory":   targetDir,
+			"command":     strings.Join(gitCmd, " "),
+			"status":      fullProjectUser.Status,
+		}
+		
+		if fullProjectUser.FinalMark != nil {
+			result["final_mark"] = *fullProjectUser.FinalMark
+		}
+		if fullProjectUser.Validated != nil {
+			result["validated"] = *fullProjectUser.Validated
+		}
+		
+		if noClone {
+			result["executed"] = false
+		}
+		
+		jsonData, _ := json.MarshalIndent(result, "", "  ")
+		fmt.Println(string(jsonData))
+		
+		if noClone {
+			return nil
+		}
+	} else {
+		fmt.Printf("📦 Cloning your project: %s\n", fullProjectUser.Project.Name)
+		fmt.Printf("👤 Team: %s\n", teamName)
+		fmt.Printf("📊 Status: %s\n", fullProjectUser.Status)
+		if fullProjectUser.FinalMark != nil {
+			fmt.Printf("🎯 Final Mark: %d\n", *fullProjectUser.FinalMark)
+		}
+		if fullProjectUser.Validated != nil {
+			if *fullProjectUser.Validated {
+				fmt.Printf("✅ Validated: Yes\n")
+			} else {
+				fmt.Printf("❌ Validated: No\n")
+			}
+		}
+		fmt.Printf("🔗 Repository: %s\n", repoURL)
+		fmt.Printf("📁 Target directory: %s\n", targetDir)
+		fmt.Printf("⚡ Running: %s\n\n", strings.Join(gitCmd, " "))
+	}
+	
+	// Execute git clone
+	cmd_exec := exec.Command("git", "clone", repoURL, targetDir)
+	cmd_exec.Stdout = os.Stdout
+	cmd_exec.Stderr = os.Stderr
+	
+	if err := cmd_exec.Run(); err != nil {
+		return fmt.Errorf("failed to clone repository: %w", err)
+	}
+	
+	if !GetJSONOutput() {
+		fmt.Printf("\n✅ Successfully cloned your %s repository to %s!\n", fullProjectUser.Project.Name, targetDir)
+		
+		// Show next steps
+		fmt.Printf("\n📝 Next steps:\n")
+		fmt.Printf("   cd %s\n", targetDir)
+		fmt.Printf("   # Continue working on your project!\n")
+	}
+	
+	return nil
 }
 
 func wrapText(text string, width int) string {

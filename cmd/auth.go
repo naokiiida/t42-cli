@@ -305,13 +305,24 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load credentials: %w", err)
 	}
-	
+
+	// Create API client with automatic token refresh
+	client, err := NewAPIClient()
+	if err != nil {
+		// If we can't create the client, still show credential info
+		client = nil
+	}
+
 	// Get user info
-	client := api.NewClient(credentials.AccessToken)
-	user, err := client.GetMe(context.Background())
-	
+	var user *api.User
+	if client != nil {
+		user, err = client.GetMe(context.Background())
+		// Reload credentials in case they were refreshed
+		credentials, _ = config.LoadCredentials()
+	}
+
 	// Calculate token expiry
-	expiresAt := time.Unix(credentials.CreatedAt, 0).Add(time.Duration(credentials.ExpiresIn) * time.Second)
+	expiresAt := config.GetTokenExpiryTime(credentials)
 	timeUntilExpiry := time.Until(expiresAt)
 	isExpired := timeUntilExpiry < 0
 	
@@ -440,10 +451,14 @@ func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.Deve
 	}
 	
 	// Exchange code for token
+	if GetVerbose() {
+		fmt.Printf("[DEBUG] Exchanging authorization code for token...\n")
+	}
 	credentials, err := exchangeCodeForToken(code, redirectURL, secrets)
 	if err != nil {
-		http.Error(w, "Failed to exchange code for token", http.StatusInternalServerError)
-		errorChan <- fmt.Errorf("failed to exchange code for token: %w", err)
+		errorMsg := fmt.Sprintf("Failed to exchange code for token: %v", err)
+		http.Error(w, errorMsg, http.StatusInternalServerError)
+		errorChan <- err
 		return
 	}
 	
@@ -493,24 +508,39 @@ func exchangeCodeForToken(code, redirectURL string, secrets *config.DevelopmentS
 	data.Set("client_secret", secrets.ClientSecret)
 	data.Set("code", code)
 	data.Set("redirect_uri", redirectURL)
-	
+
+	if GetVerbose() {
+		fmt.Printf("[DEBUG] Token exchange request:\n")
+		fmt.Printf("  URL: %s\n", tokenURL)
+		fmt.Printf("  Grant Type: %s\n", data.Get("grant_type"))
+		fmt.Printf("  Client ID: %s\n", secrets.ClientID)
+		fmt.Printf("  Redirect URI: %s\n", redirectURL)
+		fmt.Printf("  Code: %s...\n", code[:20])
+	}
+
 	// Make token request
 	resp, err := http.PostForm(tokenURL, data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make token request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read token response: %w", err)
 	}
-	
+
+	if GetVerbose() {
+		fmt.Printf("[DEBUG] Token response:\n")
+		fmt.Printf("  Status: %d\n", resp.StatusCode)
+		fmt.Printf("  Body: %s\n", string(body))
+	}
+
 	// Check for errors
 	if resp.StatusCode != http.StatusOK {
 		var errorResp api.ErrorResponse
 		if err := json.Unmarshal(body, &errorResp); err == nil {
-			return nil, fmt.Errorf("token request failed: %s", errorResp.ErrorDescription)
+			return nil, fmt.Errorf("token request failed (status %d): %s - %s", resp.StatusCode, errorResp.Error, errorResp.ErrorDescription)
 		}
 		return nil, fmt.Errorf("token request failed with status %d: %s", resp.StatusCode, string(body))
 	}
@@ -538,7 +568,7 @@ func exchangeCodeForToken(code, redirectURL string, secrets *config.DevelopmentS
 func openBrowser(url string) error {
 	var cmd string
 	var args []string
-	
+
 	switch runtime.GOOS {
 	case "windows":
 		cmd = "cmd"
@@ -548,7 +578,97 @@ func openBrowser(url string) error {
 	default: // "linux", "freebsd", "openbsd", "netbsd"
 		cmd = "xdg-open"
 	}
-	
+
 	args = append(args, url)
 	return exec.Command(cmd, args...).Start()
+}
+
+// refreshAccessToken refreshes the access token using the refresh token
+func refreshAccessToken(refreshToken string) (*config.Credentials, error) {
+	secrets, err := getOAuth2Config()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get OAuth2 configuration: %w", err)
+	}
+
+	// Prepare token refresh request
+	data := url.Values{}
+	data.Set("grant_type", "refresh_token")
+	data.Set("client_id", secrets.ClientID)
+	data.Set("client_secret", secrets.ClientSecret)
+	data.Set("refresh_token", refreshToken)
+
+	// Make token request
+	resp, err := http.PostForm(tokenURL, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make token refresh request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read token response: %w", err)
+	}
+
+	// Check for errors
+	if resp.StatusCode != http.StatusOK {
+		var errorResp api.ErrorResponse
+		if err := json.Unmarshal(body, &errorResp); err == nil {
+			return nil, fmt.Errorf("token refresh failed: %s", errorResp.ErrorDescription)
+		}
+		return nil, fmt.Errorf("token refresh failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse token response
+	var tokenResp api.Token
+	if err := json.Unmarshal(body, &tokenResp); err != nil {
+		return nil, fmt.Errorf("failed to parse token response: %w", err)
+	}
+
+	// Convert to our credentials format
+	credentials := &config.Credentials{
+		AccessToken:      tokenResp.AccessToken,
+		TokenType:        tokenResp.TokenType,
+		ExpiresIn:        tokenResp.ExpiresIn,
+		RefreshToken:     tokenResp.RefreshToken,
+		Scope:            tokenResp.Scope,
+		CreatedAt:        tokenResp.CreatedAt,
+		SecretValidUntil: tokenResp.SecretValidUntil,
+	}
+
+	return credentials, nil
+}
+
+// RefreshTokenIfNeeded checks if the token is expired or about to expire and refreshes it
+func RefreshTokenIfNeeded() error {
+	credentials, err := config.LoadCredentials()
+	if err != nil {
+		return err // No credentials to refresh
+	}
+
+	// Check if token is expired or will expire in the next 5 minutes
+	expiresAt := time.Unix(credentials.CreatedAt, 0).Add(time.Duration(credentials.ExpiresIn) * time.Second)
+	timeUntilExpiry := time.Until(expiresAt)
+
+	// If token is valid for more than 5 minutes, no need to refresh
+	if timeUntilExpiry > 5*time.Minute {
+		return nil
+	}
+
+	// Check if we have a refresh token
+	if credentials.RefreshToken == "" {
+		return fmt.Errorf("access token expired and no refresh token available - please log in again")
+	}
+
+	// Refresh the token
+	newCredentials, err := refreshAccessToken(credentials.RefreshToken)
+	if err != nil {
+		return fmt.Errorf("failed to refresh access token: %w", err)
+	}
+
+	// Save the new credentials
+	if err := config.SaveCredentials(newCredentials); err != nil {
+		return fmt.Errorf("failed to save refreshed credentials: %w", err)
+	}
+
+	return nil
 }

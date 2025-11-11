@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
@@ -221,7 +222,47 @@ func HasValidCredentials() bool {
 	if err != nil {
 		return false
 	}
-	
-	// Basic validation - check if access token exists
-	return credentials.AccessToken != ""
+
+	// Check if access token exists
+	if credentials.AccessToken == "" {
+		return false
+	}
+
+	// Check if token is expired (allowing some buffer for clock skew)
+	if !IsTokenValid(credentials) {
+		return false
+	}
+
+	return true
+}
+
+// IsTokenValid checks if the token is still valid (not expired)
+func IsTokenValid(credentials *Credentials) bool {
+	if credentials == nil {
+		return false
+	}
+
+	// Calculate expiry time
+	expiresAt := GetTokenExpiryTime(credentials)
+
+	// Check if token is expired (with 1 minute buffer for clock skew)
+	return expiresAt.After(time.Now().Add(1 * time.Minute))
+}
+
+// GetTokenExpiryTime returns when the token will expire
+func GetTokenExpiryTime(credentials *Credentials) time.Time {
+	return time.Unix(credentials.CreatedAt, 0).Add(time.Duration(credentials.ExpiresIn) * time.Second)
+}
+
+// NeedsRefresh checks if the token should be refreshed (expires in less than 5 minutes)
+func NeedsRefresh(credentials *Credentials) bool {
+	if credentials == nil {
+		return false
+	}
+
+	expiresAt := GetTokenExpiryTime(credentials)
+	timeUntilExpiry := time.Until(expiresAt)
+
+	// Refresh if token expires in less than 5 minutes
+	return timeUntilExpiry < 5*time.Minute
 }

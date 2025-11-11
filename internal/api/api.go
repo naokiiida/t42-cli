@@ -32,10 +32,11 @@ const (
 
 // Client represents a 42 API client
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
-	token      string
-	userAgent  string
+	baseURL        string
+	httpClient     *http.Client
+	token          string
+	userAgent      string
+	tokenRefresher func() (string, error) // Optional callback to refresh the token
 }
 
 // ClientOption represents a client configuration option
@@ -62,6 +63,13 @@ func WithUserAgent(userAgent string) ClientOption {
 	}
 }
 
+// WithTokenRefresher sets a callback function to refresh the access token
+func WithTokenRefresher(refresher func() (string, error)) ClientOption {
+	return func(c *Client) {
+		c.tokenRefresher = refresher
+	}
+}
+
 // NewClient creates a new 42 API client with the given access token
 func NewClient(token string, options ...ClientOption) *Client {
 	client := &Client{
@@ -83,8 +91,39 @@ func NewClient(token string, options ...ClientOption) *Client {
 
 // makeRequest performs an HTTP request with authentication and error handling
 func (c *Client) makeRequest(ctx context.Context, method, endpoint string, body interface{}) (*http.Response, error) {
+	// Try request with current token
+	resp, err := c.doRequest(ctx, method, endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	// If we get 401 Unauthorized and have a token refresher, try refreshing the token
+	if resp.StatusCode == 401 && c.tokenRefresher != nil {
+		resp.Body.Close()
+
+		// Attempt to refresh the token
+		newToken, refreshErr := c.tokenRefresher()
+		if refreshErr != nil {
+			return nil, fmt.Errorf("token refresh failed: %w", refreshErr)
+		}
+
+		// Update the client's token
+		c.token = newToken
+
+		// Retry the request with the new token
+		resp, err = c.doRequest(ctx, method, endpoint, body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return resp, nil
+}
+
+// doRequest performs the actual HTTP request with retries
+func (c *Client) doRequest(ctx context.Context, method, endpoint string, body interface{}) (*http.Response, error) {
 	var reqBody io.Reader
-	
+
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
@@ -92,29 +131,29 @@ func (c *Client) makeRequest(ctx context.Context, method, endpoint string, body 
 		}
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
-	
+
 	// Construct full URL
 	fullURL := c.baseURL + endpoint
-	
+
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// Set headers
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	req.Header.Set("User-Agent", c.userAgent)
 	req.Header.Set("Accept", "application/json")
-	
+
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	
+
 	// Perform request with retries
 	var resp *http.Response
 	var lastErr error
-	
+
 	for attempt := 0; attempt <= MaxRetries; attempt++ {
 		if attempt > 0 {
 			// Wait before retrying
@@ -124,26 +163,26 @@ func (c *Client) makeRequest(ctx context.Context, method, endpoint string, body 
 			case <-time.After(RetryDelay * time.Duration(attempt)):
 			}
 		}
-		
+
 		resp, lastErr = c.httpClient.Do(req)
 		if lastErr != nil {
 			continue // Retry on network errors
 		}
-		
+
 		// Check if we should retry based on status code
 		if resp.StatusCode >= 500 || resp.StatusCode == 429 {
 			resp.Body.Close()
 			continue // Retry on server errors and rate limiting
 		}
-		
+
 		// Success or client error (don't retry)
 		break
 	}
-	
+
 	if lastErr != nil {
 		return nil, fmt.Errorf("request failed after %d attempts: %w", MaxRetries+1, lastErr)
 	}
-	
+
 	return resp, nil
 }
 

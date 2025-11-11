@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
+	"github.com/naokiiida/t42-cli/internal/api"
+	"github.com/naokiiida/t42-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -93,4 +96,61 @@ func GetJSONOutput() bool {
 // GetVerbose returns the current state of the verbose flag
 func GetVerbose() bool {
 	return verbose
+}
+
+// NewAPIClient creates a new API client with automatic token refresh
+func NewAPIClient() (*api.Client, error) {
+	// Load credentials
+	credentials, err := config.LoadCredentials()
+	if err != nil {
+		return nil, fmt.Errorf("not authenticated - please run 't42 auth login' first: %w", err)
+	}
+
+	// Check if we need to refresh the token proactively
+	if config.NeedsRefresh(credentials) {
+		if err := RefreshTokenIfNeeded(); err != nil {
+			return nil, fmt.Errorf("failed to refresh token: %w", err)
+		}
+		// Reload credentials after refresh
+		credentials, err = config.LoadCredentials()
+		if err != nil {
+			return nil, fmt.Errorf("failed to reload credentials after refresh: %w", err)
+		}
+	}
+
+	// Create client with token refresher callback
+	client := api.NewClient(
+		credentials.AccessToken,
+		api.WithTokenRefresher(func() (string, error) {
+			// This callback will be called when the API returns 401
+			if err := RefreshTokenIfNeeded(); err != nil {
+				return "", err
+			}
+
+			// Load the new credentials
+			newCreds, err := config.LoadCredentials()
+			if err != nil {
+				return "", err
+			}
+
+			return newCreds.AccessToken, nil
+		}),
+	)
+
+	return client, nil
+}
+
+// RequireAuth ensures the user is authenticated and returns an API client
+func RequireAuth(ctx context.Context) (*api.Client, error) {
+	client, err := NewAPIClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify authentication works
+	if !client.IsAuthenticated(ctx) {
+		return nil, fmt.Errorf("authentication failed - please run 't42 auth login' again")
+	}
+
+	return client, nil
 }
