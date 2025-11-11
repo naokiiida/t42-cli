@@ -20,6 +20,7 @@ import (
 
 	"github.com/naokiiida/t42-cli/internal/api"
 	"github.com/naokiiida/t42-cli/internal/config"
+	"github.com/naokiiida/t42-cli/internal/oauth"
 )
 
 const (
@@ -136,21 +137,34 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate state: %w", err)
 	}
-	
-	// Build authorization URL
+
+	// Generate PKCE parameters
+	pkce, err := oauth.GeneratePKCEParams()
+	if err != nil {
+		return fmt.Errorf("failed to generate PKCE parameters: %w", err)
+	}
+
+	if GetVerbose() {
+		fmt.Printf("[DEBUG] PKCE generated:\n")
+		fmt.Printf("  Code Verifier: %s...\n", pkce.CodeVerifier[:min(len(pkce.CodeVerifier), 20)])
+		fmt.Printf("  Code Challenge: %s...\n", pkce.CodeChallenge[:min(len(pkce.CodeChallenge), 20)])
+	}
+
+	// Build authorization URL with PKCE
 	redirectURL := fmt.Sprintf("http://localhost:%d/callback", port)
-	authURL := buildAuthorizationURL(secrets.ClientID, redirectURL, state, defaultScope)
-	
+	authURL := buildAuthorizationURL(secrets.ClientID, redirectURL, state, defaultScope, pkce.CodeChallenge)
+
 	// Start local callback server
 	tokenChan := make(chan *config.Credentials, 1)
 	errorChan := make(chan error, 1)
-	
+
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", port),
 	}
-	
+
+	// Update callback handler to pass PKCE verifier
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		handleCallback(w, r, secrets, redirectURL, state, tokenChan, errorChan)
+		handleCallback(w, r, secrets, redirectURL, state, pkce.CodeVerifier, tokenChan, errorChan)
 	})
 	
 	// Start server in goroutine
@@ -406,23 +420,36 @@ func generateState() (string, error) {
 	return base64.URLEncoding.EncodeToString(bytes), nil
 }
 
-func buildAuthorizationURL(clientID, redirectURL, state, scope string) string {
+func buildAuthorizationURL(clientID, redirectURL, state, scope string, pkceChallenge string) string {
 	params := url.Values{}
 	params.Set("client_id", clientID)
 	params.Set("redirect_uri", redirectURL)
 	params.Set("response_type", "code")
 	params.Set("scope", scope)
 	params.Set("state", state)
-	
+
+	// Add PKCE parameters
+	if pkceChallenge != "" {
+		params.Set("code_challenge", pkceChallenge)
+		params.Set("code_challenge_method", "S256")
+	}
+
 	return authorizeURL + "?" + params.Encode()
 }
 
-func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.DevelopmentSecrets, redirectURL, expectedState string, tokenChan chan<- *config.Credentials, errorChan chan<- error) {
+func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.DevelopmentSecrets, redirectURL, expectedState, pkceVerifier string, tokenChan chan<- *config.Credentials, errorChan chan<- error) {
 	// Parse query parameters
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
 	errorParam := r.URL.Query().Get("error")
-	
+
+	if GetVerbose() {
+		fmt.Printf("[DEBUG] Callback received:\n")
+		fmt.Printf("  Code: %s...\n", code[:min(len(code), 20)])
+		fmt.Printf("  State: %s...\n", state[:min(len(state), 20)])
+		fmt.Printf("  Redirect URI: %s\n", redirectURL)
+	}
+
 	// Check for OAuth2 errors
 	if errorParam != "" {
 		errorDesc := r.URL.Query().Get("error_description")
@@ -430,31 +457,31 @@ func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.Deve
 		if errorDesc != "" {
 			msg += fmt.Sprintf(" (%s)", errorDesc)
 		}
-		
+
 		http.Error(w, msg, http.StatusBadRequest)
 		errorChan <- fmt.Errorf(msg)
 		return
 	}
-	
+
 	// Validate state parameter
 	if state != expectedState {
 		http.Error(w, "Invalid state parameter", http.StatusBadRequest)
 		errorChan <- fmt.Errorf("invalid state parameter - possible CSRF attack")
 		return
 	}
-	
+
 	// Validate authorization code
 	if code == "" {
 		http.Error(w, "Missing authorization code", http.StatusBadRequest)
 		errorChan <- fmt.Errorf("missing authorization code")
 		return
 	}
-	
-	// Exchange code for token
+
+	// Exchange code for token (with PKCE verifier)
 	if GetVerbose() {
-		fmt.Printf("[DEBUG] Exchanging authorization code for token...\n")
+		fmt.Printf("[DEBUG] Exchanging authorization code for token with PKCE...\n")
 	}
-	credentials, err := exchangeCodeForToken(code, redirectURL, secrets)
+	credentials, err := exchangeCodeForToken(code, redirectURL, secrets, pkceVerifier)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to exchange code for token: %v", err)
 		http.Error(w, errorMsg, http.StatusInternalServerError)
@@ -500,7 +527,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.Deve
 	tokenChan <- credentials
 }
 
-func exchangeCodeForToken(code, redirectURL string, secrets *config.DevelopmentSecrets) (*config.Credentials, error) {
+func exchangeCodeForToken(code, redirectURL string, secrets *config.DevelopmentSecrets, pkceVerifier string) (*config.Credentials, error) {
 	// Prepare token request
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
@@ -509,13 +536,21 @@ func exchangeCodeForToken(code, redirectURL string, secrets *config.DevelopmentS
 	data.Set("code", code)
 	data.Set("redirect_uri", redirectURL)
 
+	// Add PKCE code verifier
+	if pkceVerifier != "" {
+		data.Set("code_verifier", pkceVerifier)
+	}
+
 	if GetVerbose() {
 		fmt.Printf("[DEBUG] Token exchange request:\n")
 		fmt.Printf("  URL: %s\n", tokenURL)
 		fmt.Printf("  Grant Type: %s\n", data.Get("grant_type"))
 		fmt.Printf("  Client ID: %s\n", secrets.ClientID)
 		fmt.Printf("  Redirect URI: %s\n", redirectURL)
-		fmt.Printf("  Code: %s...\n", code[:20])
+		fmt.Printf("  Code: %s...\n", code[:min(len(code), 20)])
+		if pkceVerifier != "" {
+			fmt.Printf("  PKCE: enabled (verifier: %s...)\n", pkceVerifier[:min(len(pkceVerifier), 20)])
+		}
 	}
 
 	// Make token request
@@ -533,7 +568,9 @@ func exchangeCodeForToken(code, redirectURL string, secrets *config.DevelopmentS
 	if GetVerbose() {
 		fmt.Printf("[DEBUG] Token response:\n")
 		fmt.Printf("  Status: %d\n", resp.StatusCode)
-		fmt.Printf("  Body: %s\n", string(body))
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("  Body: %s\n", string(body))
+		}
 	}
 
 	// Check for errors
@@ -671,4 +708,12 @@ func RefreshTokenIfNeeded() error {
 	}
 
 	return nil
+}
+
+// Helper function to return minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
