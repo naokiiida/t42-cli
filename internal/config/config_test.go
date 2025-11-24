@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -109,6 +110,7 @@ func TestCredentialsOperations(t *testing.T) {
 
 	// Test credentials that don't exist yet
 	t.Run("load non-existent credentials", func(t *testing.T) {
+		DeleteCredentials()
 		_, err := LoadCredentials()
 		if err == nil {
 			t.Error("LoadCredentials() should error when file doesn't exist")
@@ -347,6 +349,8 @@ func TestHasValidCredentials(t *testing.T) {
 		testCredentials := &Credentials{
 			AccessToken: "valid_token",
 			TokenType:   "bearer",
+			CreatedAt:   time.Now().Unix(),
+			ExpiresIn:   7200, // 2 hours
 		}
 
 		err := SaveCredentials(testCredentials)
