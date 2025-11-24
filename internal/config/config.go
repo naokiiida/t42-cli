@@ -181,6 +181,7 @@ func SaveConfig(config *Config) error {
 }
 
 // LoadDevelopmentSecrets loads development secrets from the .env file
+// in the local secret/ directory (for development mode only)
 func LoadDevelopmentSecrets() (*DevelopmentSecrets, error) {
 	envPath := GetDevelopmentEnvFilePath()
 
@@ -206,6 +207,46 @@ func LoadDevelopmentSecrets() (*DevelopmentSecrets, error) {
 	}
 	if secrets.ClientSecret == "" {
 		return nil, fmt.Errorf("FT_SECRET not found in %s", envPath)
+	}
+
+	// RedirectURL is optional for some flows
+	if secrets.RedirectURL == "" {
+		secrets.RedirectURL = "http://127.0.0.1:8080/callback"
+	}
+
+	return secrets, nil
+}
+
+// LoadSecretsFromConfigDir loads OAuth2 client secrets from the XDG config directory
+// (for deployed/production use). This respects XDG_CONFIG_HOME on Linux/BSD.
+func LoadSecretsFromConfigDir() (*DevelopmentSecrets, error) {
+	secretsPath, err := GetSecretsFilePath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secrets file path: %w", err)
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(secretsPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("secrets file not found at %s", secretsPath)
+	}
+
+	// Load environment variables from file
+	if err := godotenv.Load(secretsPath); err != nil {
+		return nil, fmt.Errorf("failed to load secrets file: %w", err)
+	}
+
+	secrets := &DevelopmentSecrets{
+		ClientID:     os.Getenv("FT_UID"),
+		ClientSecret: os.Getenv("FT_SECRET"),
+		RedirectURL:  os.Getenv("REDIRECT_URL"),
+	}
+
+	// Validate required fields
+	if secrets.ClientID == "" {
+		return nil, fmt.Errorf("FT_UID not found in %s", secretsPath)
+	}
+	if secrets.ClientSecret == "" {
+		return nil, fmt.Errorf("FT_SECRET not found in %s", secretsPath)
 	}
 
 	// RedirectURL is optional for some flows

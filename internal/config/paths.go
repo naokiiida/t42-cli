@@ -8,16 +8,19 @@ import (
 const (
 	// AppName is the name of the application used for config directories
 	AppName = "t42"
-	
+
 	// ConfigFileName is the name of the user configuration file
 	ConfigFileName = "config.yaml"
-	
+
 	// CredentialsFileName is the name of the credentials file
 	CredentialsFileName = "credentials.json"
-	
+
+	// SecretsFileName is the name of the OAuth2 client secrets file
+	SecretsFileName = "secrets.env"
+
 	// SecretDirName is the name of the development secrets directory
 	SecretDirName = "secret"
-	
+
 	// EnvFileName is the name of the environment file for development
 	EnvFileName = ".env"
 )
@@ -58,7 +61,18 @@ func GetCredentialsFilePath() (string, error) {
 	return filepath.Join(configDir, CredentialsFileName), nil
 }
 
+// GetSecretsFilePath returns the full path to the OAuth2 client secrets file
+// in the user's config directory (for deployed/production use)
+func GetSecretsFilePath() (string, error) {
+	configDir, err := GetConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(configDir, SecretsFileName), nil
+}
+
 // GetDevelopmentEnvFilePath returns the path to the development .env file
+// (for local development use)
 func GetDevelopmentEnvFilePath() string {
 	return filepath.Join(SecretDirName, EnvFileName)
 }
@@ -69,6 +83,6 @@ func EnsureConfigDir() error {
 	if err != nil {
 		return err
 	}
-	
+
 	return os.MkdirAll(configDir, 0755)
 }

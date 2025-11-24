@@ -430,17 +430,43 @@ func runStatus(cmd *cobra.Command, args []string) error {
 }
 
 func getOAuth2Config() (*config.DevelopmentSecrets, error) {
-	// Try to load from development secrets first
+	// Fallback chain for loading OAuth2 client secrets:
+	// 1. Development secrets (secret/.env) - for local development
+	// 2. XDG config directory (e.g., ~/.config/t42/secrets.env) - for deployed use
+	// 3. Environment variables (FT_UID, FT_SECRET) - for CI/CD or custom setups
+
+	// Try development secrets first (if T42_ENV=development or secret/.env exists)
 	if secrets, err := config.LoadDevelopmentSecrets(); err == nil {
 		return secrets, nil
 	}
 
-	// If no development secrets, check environment variables
+	// Try XDG config directory secrets (for deployed/production use)
+	if secrets, err := config.LoadSecretsFromConfigDir(); err == nil {
+		return secrets, nil
+	}
+
+	// Fallback to environment variables
 	clientID := os.Getenv("FT_UID")
 	clientSecret := os.Getenv("FT_SECRET")
 
 	if clientID == "" || clientSecret == "" {
-		return nil, fmt.Errorf("OAuth2 configuration not found. Please create secret/.env with FT_UID and FT_SECRET, or set environment variables")
+		// Provide helpful error message with all possible locations
+		secretsPath, _ := config.GetSecretsFilePath()
+		return nil, fmt.Errorf(`OAuth2 configuration not found. Please set up client secrets in one of these ways:
+
+1. For development: Create secret/.env with:
+   FT_UID=your_client_id
+   FT_SECRET=your_client_secret
+
+2. For deployed/production: Create %s with:
+   FT_UID=your_client_id
+   FT_SECRET=your_client_secret
+
+3. Or set environment variables:
+   export FT_UID=your_client_id
+   export FT_SECRET=your_client_secret
+
+Get your OAuth2 credentials from: https://profile.intra.42.fr/oauth/applications`, secretsPath)
 	}
 
 	return &config.DevelopmentSecrets{
