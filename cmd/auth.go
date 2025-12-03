@@ -76,12 +76,6 @@ including token scope, expiry time, and user information.`,
 	RunE: runStatus,
 }
 
-// OAuth2 state for security
-type oauthState struct {
-	State     string `json:"state"`
-	CreatedAt int64  `json:"created_at"`
-}
-
 func init() {
 	// Add auth subcommands
 	authCmd.AddCommand(loginCmd)
@@ -253,7 +247,9 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	}
 
 	// Shutdown server
-	ln.Close()
+	if err := ln.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to close listener: %v\n", err)
+	}
 
 	// Save credentials
 	if err := config.SaveCredentials(credentials); err != nil {
@@ -585,7 +581,10 @@ func handleCallback(w http.ResponseWriter, r *http.Request, secrets *config.Deve
 
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(successHTML))
+	if _, err := w.Write([]byte(successHTML)); err != nil {
+		// Log error but don't fail the callback handler
+		fmt.Fprintf(os.Stderr, "Failed to write response: %v\n", err)
+	}
 
 	// Send credentials to main goroutine
 	tokenChan <- credentials
@@ -622,7 +621,11 @@ func exchangeCodeForToken(code, redirectURL string, secrets *config.DevelopmentS
 	if err != nil {
 		return nil, fmt.Errorf("failed to make token request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -703,7 +706,11 @@ func refreshAccessToken(refreshToken string) (*config.Credentials, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to make token refresh request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

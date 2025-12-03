@@ -34,7 +34,7 @@ Examples:
   t42 project list            # List your projects
   t42 project show libft      # Show details for a specific project
   t42 auth status             # Check your authentication status`,
-	
+
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -53,11 +53,11 @@ func init() {
 	// Global flags
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
-	
+
 	// Version flag (for convenience)
 	var versionFlag bool
 	rootCmd.Flags().BoolVar(&versionFlag, "version", false, "Print version information")
-	
+
 	// Override the default run behavior to handle --version
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
 		if versionFlag {
@@ -65,9 +65,11 @@ func init() {
 			return
 		}
 		// If no subcommand is provided and no version flag, show help
-		cmd.Help()
+		if err := cmd.Help(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error displaying help: %v\n", err)
+		}
 	}
-	
+
 	// Version command
 	rootCmd.AddCommand(versionCmd)
 }

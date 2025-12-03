@@ -1,0 +1,21 @@
+---
+# Lefthook configuration for git hooks
+# See: https://github.com/evilmartians/lefthook
+
+colors: true
+
+pre-push:
+  parallel: false
+  commands:
+    lint:
+      glob: "*.go"
+      run: golangci-lint run
+      stage_fixed: true
+
+pre-commit:
+  parallel: false
+  commands:
+    lint:
+      glob: "*.go"
+      run: golangci-lint run --fix
+      stage_fixed: true

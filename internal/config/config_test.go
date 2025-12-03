@@ -12,8 +12,14 @@ import (
 func TestGetConfigDir(t *testing.T) {
 	// Test development environment
 	t.Run("development environment", func(t *testing.T) {
-		os.Setenv("T42_ENV", "development")
-		defer os.Unsetenv("T42_ENV")
+		if err := os.Setenv("T42_ENV", "development"); err != nil {
+			t.Fatalf("Failed to set T42_ENV: %v", err)
+		}
+		defer func() {
+			if err := os.Unsetenv("T42_ENV"); err != nil {
+				t.Fatalf("Failed to unset T42_ENV: %v", err)
+			}
+		}()
 
 		configDir, err := GetConfigDir()
 		if err != nil {
@@ -28,7 +34,9 @@ func TestGetConfigDir(t *testing.T) {
 
 	// Test production environment
 	t.Run("production environment", func(t *testing.T) {
-		os.Unsetenv("T42_ENV")
+		if err := os.Unsetenv("T42_ENV"); err != nil {
+			t.Fatalf("Failed to unset T42_ENV: %v", err)
+		}
 
 		configDir, err := GetConfigDir()
 		if err != nil {
@@ -48,8 +56,14 @@ func TestGetConfigDir(t *testing.T) {
 
 func TestGetConfigFilePath(t *testing.T) {
 	// Set development environment for predictable path
-	os.Setenv("T42_ENV", "development")
-	defer os.Unsetenv("T42_ENV")
+	if err := os.Setenv("T42_ENV", "development"); err != nil {
+		t.Fatalf("Failed to set T42_ENV: %v", err)
+	}
+	defer func() {
+		if err := os.Unsetenv("T42_ENV"); err != nil {
+			t.Fatalf("Failed to unset T42_ENV: %v", err)
+		}
+	}()
 
 	path, err := GetConfigFilePath()
 	if err != nil {
@@ -64,8 +78,14 @@ func TestGetConfigFilePath(t *testing.T) {
 
 func TestGetCredentialsFilePath(t *testing.T) {
 	// Set development environment for predictable path
-	os.Setenv("T42_ENV", "development")
-	defer os.Unsetenv("T42_ENV")
+	if err := os.Setenv("T42_ENV", "development"); err != nil {
+		t.Fatalf("Failed to set T42_ENV: %v", err)
+	}
+	defer func() {
+		if err := os.Unsetenv("T42_ENV"); err != nil {
+			t.Fatalf("Failed to unset T42_ENV: %v", err)
+		}
+	}()
 
 	path, err := GetCredentialsFilePath()
 	if err != nil {
@@ -88,15 +108,27 @@ func TestGetDevelopmentEnvFilePath(t *testing.T) {
 
 func TestCredentialsOperations(t *testing.T) {
 	// Set up test environment
-	os.Setenv("T42_ENV", "development")
-	defer os.Unsetenv("T42_ENV")
+	if err := os.Setenv("T42_ENV", "development"); err != nil {
+		t.Fatalf("Failed to set T42_ENV: %v", err)
+	}
+	defer func() {
+		if err := os.Unsetenv("T42_ENV"); err != nil {
+			t.Fatalf("Failed to unset T42_ENV: %v", err)
+		}
+	}()
 
 	// Create test directory
 	testDir := "test_secret"
-	os.Setenv("T42_ENV", "development")
+	if err := os.Setenv("T42_ENV", "development"); err != nil {
+		t.Fatalf("Failed to set T42_ENV: %v", err)
+	}
 	defer func() {
-		os.RemoveAll(testDir)
-		os.Unsetenv("T42_ENV")
+		if err := os.RemoveAll(testDir); err != nil {
+			t.Logf("Warning: failed to remove test dir: %v", err)
+		}
+		if err := os.Unsetenv("T42_ENV"); err != nil {
+			t.Fatalf("Failed to unset T42_ENV: %v", err)
+		}
 	}()
 
 	// Note: We're using the development environment which uses a predictable path
@@ -106,11 +138,17 @@ func TestCredentialsOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	// Test credentials that don't exist yet
 	t.Run("load non-existent credentials", func(t *testing.T) {
-		DeleteCredentials()
+		if err := DeleteCredentials(); err != nil {
+			t.Logf("Warning: failed to delete credentials: %v", err)
+		}
 		_, err := LoadCredentials()
 		if err == nil {
 			t.Error("LoadCredentials() should error when file doesn't exist")
@@ -215,15 +253,25 @@ func TestCredentialsOperations(t *testing.T) {
 
 func TestConfigOperations(t *testing.T) {
 	// Set up test environment
-	os.Setenv("T42_ENV", "development")
-	defer os.Unsetenv("T42_ENV")
+	if err := os.Setenv("T42_ENV", "development"); err != nil {
+		t.Fatalf("Failed to set T42_ENV: %v", err)
+	}
+	defer func() {
+		if err := os.Unsetenv("T42_ENV"); err != nil {
+			t.Fatalf("Failed to unset T42_ENV: %v", err)
+		}
+	}()
 
 	// Create a temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "t42-config-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	// Test default config
 	t.Run("default config", func(t *testing.T) {
@@ -331,13 +379,21 @@ func TestConfigOperations(t *testing.T) {
 
 func TestHasValidCredentials(t *testing.T) {
 	// Set up test environment
-	os.Setenv("T42_ENV", "development")
-	defer os.Unsetenv("T42_ENV")
+	if err := os.Setenv("T42_ENV", "development"); err != nil {
+		t.Fatalf("Failed to set T42_ENV: %v", err)
+	}
+	defer func() {
+		if err := os.Unsetenv("T42_ENV"); err != nil {
+			t.Fatalf("Failed to unset T42_ENV: %v", err)
+		}
+	}()
 
 	// Test with no credentials
 	t.Run("no credentials", func(t *testing.T) {
 		// Ensure no credentials exist
-		DeleteCredentials()
+		if err := DeleteCredentials(); err != nil {
+			t.Logf("Warning: failed to delete credentials: %v", err)
+		}
 
 		if HasValidCredentials() {
 			t.Error("HasValidCredentials() should return false when no credentials exist")
@@ -383,15 +439,23 @@ func TestHasValidCredentials(t *testing.T) {
 
 func TestEnsureConfigDir(t *testing.T) {
 	// Set up test environment
-	os.Setenv("T42_ENV", "development")
-	defer os.Unsetenv("T42_ENV")
+	if err := os.Setenv("T42_ENV", "development"); err != nil {
+		t.Fatalf("Failed to set T42_ENV: %v", err)
+	}
+	defer func() {
+		if err := os.Unsetenv("T42_ENV"); err != nil {
+			t.Fatalf("Failed to unset T42_ENV: %v", err)
+		}
+	}()
 
 	// Remove the directory if it exists
 	configDir, err := GetConfigDir()
 	if err != nil {
 		t.Fatalf("GetConfigDir() error = %v", err)
 	}
-	os.RemoveAll(configDir)
+	if err := os.RemoveAll(configDir); err != nil {
+		t.Logf("Warning: failed to remove config dir: %v", err)
+	}
 
 	// Ensure the directory
 	err = EnsureConfigDir()
@@ -411,7 +475,11 @@ func TestLoadDevelopmentSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	// Test with missing .env file
 	t.Run("missing env file", func(t *testing.T) {
@@ -424,9 +492,15 @@ func TestLoadDevelopmentSecrets(t *testing.T) {
 	// Test with valid .env file
 	t.Run("valid env file", func(t *testing.T) {
 		// Clear environment variables from previous tests
-		os.Unsetenv("FT_UID")
-		os.Unsetenv("FT_SECRET")
-		os.Unsetenv("REDIRECT_URL")
+		if err := os.Unsetenv("FT_UID"); err != nil {
+			t.Logf("Warning: failed to unset FT_UID: %v", err)
+		}
+		if err := os.Unsetenv("FT_SECRET"); err != nil {
+			t.Logf("Warning: failed to unset FT_SECRET: %v", err)
+		}
+		if err := os.Unsetenv("REDIRECT_URL"); err != nil {
+			t.Logf("Warning: failed to unset REDIRECT_URL: %v", err)
+		}
 
 		// Create test .env file
 		envContent := `FT_UID=test_client_id
@@ -436,13 +510,19 @@ REDIRECT_URL=http://localhost:3000/callback
 		envPath := GetDevelopmentEnvFilePath()
 
 		// Ensure directory exists
-		os.MkdirAll(filepath.Dir(envPath), 0755)
+		if err := os.MkdirAll(filepath.Dir(envPath), 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
 
 		err := os.WriteFile(envPath, []byte(envContent), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test .env file: %v", err)
 		}
-		defer os.Remove(envPath)
+		defer func() {
+			if err := os.Remove(envPath); err != nil {
+				t.Logf("Warning: failed to remove env file: %v", err)
+			}
+		}()
 
 		secrets, err := LoadDevelopmentSecrets()
 		if err != nil {
@@ -463,19 +543,31 @@ REDIRECT_URL=http://localhost:3000/callback
 	// Test with missing required fields
 	t.Run("missing client id", func(t *testing.T) {
 		// Clear environment variables from previous tests
-		os.Unsetenv("FT_UID")
-		os.Unsetenv("FT_SECRET")
-		os.Unsetenv("REDIRECT_URL")
+		if err := os.Unsetenv("FT_UID"); err != nil {
+			t.Logf("Warning: failed to unset FT_UID: %v", err)
+		}
+		if err := os.Unsetenv("FT_SECRET"); err != nil {
+			t.Logf("Warning: failed to unset FT_SECRET: %v", err)
+		}
+		if err := os.Unsetenv("REDIRECT_URL"); err != nil {
+			t.Logf("Warning: failed to unset REDIRECT_URL: %v", err)
+		}
 
 		envContent := `FT_SECRET=test_client_secret`
 		envPath := GetDevelopmentEnvFilePath()
 
-		os.MkdirAll(filepath.Dir(envPath), 0755)
+		if err := os.MkdirAll(filepath.Dir(envPath), 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
 		err := os.WriteFile(envPath, []byte(envContent), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test .env file: %v", err)
 		}
-		defer os.Remove(envPath)
+		defer func() {
+			if err := os.Remove(envPath); err != nil {
+				t.Logf("Warning: failed to remove env file: %v", err)
+			}
+		}()
 
 		_, err = LoadDevelopmentSecrets()
 		if err == nil {
@@ -486,20 +578,32 @@ REDIRECT_URL=http://localhost:3000/callback
 	// Test with default redirect URL
 	t.Run("default redirect url", func(t *testing.T) {
 		// Clear environment variables from previous tests
-		os.Unsetenv("FT_UID")
-		os.Unsetenv("FT_SECRET")
-		os.Unsetenv("REDIRECT_URL")
+		if err := os.Unsetenv("FT_UID"); err != nil {
+			t.Logf("Warning: failed to unset FT_UID: %v", err)
+		}
+		if err := os.Unsetenv("FT_SECRET"); err != nil {
+			t.Logf("Warning: failed to unset FT_SECRET: %v", err)
+		}
+		if err := os.Unsetenv("REDIRECT_URL"); err != nil {
+			t.Logf("Warning: failed to unset REDIRECT_URL: %v", err)
+		}
 
 		envContent := `FT_UID=test_client_id
 FT_SECRET=test_client_secret`
 		envPath := GetDevelopmentEnvFilePath()
 
-		os.MkdirAll(filepath.Dir(envPath), 0755)
+		if err := os.MkdirAll(filepath.Dir(envPath), 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
 		err := os.WriteFile(envPath, []byte(envContent), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test .env file: %v", err)
 		}
-		defer os.Remove(envPath)
+		defer func() {
+			if err := os.Remove(envPath); err != nil {
+				t.Logf("Warning: failed to remove env file: %v", err)
+			}
+		}()
 
 		secrets, err := LoadDevelopmentSecrets()
 		if err != nil {

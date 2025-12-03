@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -16,16 +17,16 @@ import (
 const (
 	// DefaultBaseURL is the default 42 API base URL
 	DefaultBaseURL = "https://api.intra.42.fr"
-	
+
 	// DefaultTimeout is the default HTTP client timeout
 	DefaultTimeout = 30 * time.Second
-	
+
 	// DefaultPerPage is the default number of items per page
 	DefaultPerPage = 100
-	
+
 	// MaxRetries is the maximum number of retries for failed requests
 	MaxRetries = 3
-	
+
 	// RetryDelay is the delay between retries
 	RetryDelay = 1 * time.Second
 )
@@ -80,12 +81,12 @@ func NewClient(token string, options ...ClientOption) *Client {
 		token:     token,
 		userAgent: "t42-cli/1.0",
 	}
-	
+
 	// Apply options
 	for _, option := range options {
 		option(client)
 	}
-	
+
 	return client
 }
 
@@ -99,7 +100,9 @@ func (c *Client) makeRequest(ctx context.Context, method, endpoint string, body 
 
 	// If we get 401 Unauthorized and have a token refresher, try refreshing the token
 	if resp.StatusCode == 401 && c.tokenRefresher != nil {
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
 
 		// Attempt to refresh the token
 		newToken, refreshErr := c.tokenRefresher()
@@ -171,7 +174,9 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, body in
 
 		// Check if we should retry based on status code
 		if resp.StatusCode >= 500 || resp.StatusCode == 429 {
-			resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+			}
 			continue // Retry on server errors and rate limiting
 		}
 
@@ -188,13 +193,17 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, body in
 
 // handleResponse processes an HTTP response and unmarshals JSON data
 func (c *Client) handleResponse(resp *http.Response, target interface{}) error {
-	defer resp.Body.Close()
-	
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
+	}()
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
-	
+
 	// Check for API errors
 	if resp.StatusCode >= 400 {
 		var apiError ErrorResponse
@@ -202,22 +211,22 @@ func (c *Client) handleResponse(resp *http.Response, target interface{}) error {
 			// If we can't parse the error response, return a generic error
 			return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 		}
-		
+
 		// Set status code if not present in the error response
 		if apiError.Status == 0 {
 			apiError.Status = resp.StatusCode
 		}
-		
+
 		return fmt.Errorf("API error (status %d): %s", apiError.Status, apiError.Message)
 	}
-	
+
 	// Parse successful response
 	if target != nil {
 		if err := json.Unmarshal(body, target); err != nil {
 			return fmt.Errorf("failed to unmarshal response: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -227,12 +236,12 @@ func (c *Client) GetMe(ctx context.Context) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var user User
 	if err := c.handleResponse(resp, &user); err != nil {
 		return nil, err
 	}
-	
+
 	return &user, nil
 }
 
@@ -243,12 +252,12 @@ func (c *Client) GetUser(ctx context.Context, userID int) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var user User
 	if err := c.handleResponse(resp, &user); err != nil {
 		return nil, err
 	}
-	
+
 	return &user, nil
 }
 
@@ -259,21 +268,21 @@ func (c *Client) GetUserByLogin(ctx context.Context, login string) (*User, error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var user User
 	if err := c.handleResponse(resp, &user); err != nil {
 		return nil, err
 	}
-	
+
 	return &user, nil
 }
 
 // ListProjectsOptions represents options for listing projects
 type ListProjectsOptions struct {
-	Page    int
-	PerPage int
+	Page     int
+	PerPage  int
 	CursusID int
-	Sort    string
+	Sort     string
 }
 
 // ListProjects returns a list of projects with optional filtering
@@ -281,7 +290,7 @@ func (c *Client) ListProjects(ctx context.Context, opts *ListProjectsOptions) ([
 	if opts == nil {
 		opts = &ListProjectsOptions{}
 	}
-	
+
 	// Set defaults
 	if opts.PerPage == 0 {
 		opts.PerPage = DefaultPerPage
@@ -289,33 +298,33 @@ func (c *Client) ListProjects(ctx context.Context, opts *ListProjectsOptions) ([
 	if opts.Page == 0 {
 		opts.Page = 1
 	}
-	
+
 	// Build query parameters
 	params := url.Values{}
 	params.Set("page", strconv.Itoa(opts.Page))
 	params.Set("per_page", strconv.Itoa(opts.PerPage))
-	
+
 	if opts.CursusID > 0 {
 		params.Set("filter[cursus_id]", strconv.Itoa(opts.CursusID))
 	}
 	if opts.Sort != "" {
 		params.Set("sort", opts.Sort)
 	}
-	
+
 	endpoint := "/v2/projects?" + params.Encode()
 	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	var projects []Project
 	if err := c.handleResponse(resp, &projects); err != nil {
 		return nil, nil, err
 	}
-	
+
 	// Extract pagination metadata from headers
 	meta := c.extractPaginationMeta(resp, len(projects))
-	
+
 	return projects, meta, nil
 }
 
@@ -326,12 +335,12 @@ func (c *Client) GetProject(ctx context.Context, projectID int) (*Project, error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var project Project
 	if err := c.handleResponse(resp, &project); err != nil {
 		return nil, err
 	}
-	
+
 	return &project, nil
 }
 
@@ -341,22 +350,22 @@ func (c *Client) GetProjectBySlug(ctx context.Context, slug string) (*Project, e
 	params := url.Values{}
 	params.Set("filter[slug]", slug)
 	params.Set("per_page", "1")
-	
+
 	endpoint := "/v2/projects?" + params.Encode()
 	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var projects []Project
 	if err := c.handleResponse(resp, &projects); err != nil {
 		return nil, err
 	}
-	
+
 	if len(projects) == 0 {
 		return nil, fmt.Errorf("project with slug '%s' not found", slug)
 	}
-	
+
 	return &projects[0], nil
 }
 
@@ -372,7 +381,7 @@ func (c *Client) ListUserProjects(ctx context.Context, userID int, opts *ListUse
 	if opts == nil {
 		opts = &ListUserProjectsOptions{}
 	}
-	
+
 	// Set defaults
 	if opts.PerPage == 0 {
 		opts.PerPage = DefaultPerPage
@@ -380,30 +389,30 @@ func (c *Client) ListUserProjects(ctx context.Context, userID int, opts *ListUse
 	if opts.Page == 0 {
 		opts.Page = 1
 	}
-	
+
 	// Build query parameters
 	params := url.Values{}
 	params.Set("page", strconv.Itoa(opts.Page))
 	params.Set("per_page", strconv.Itoa(opts.PerPage))
-	
+
 	if opts.Sort != "" {
 		params.Set("sort", opts.Sort)
 	}
-	
+
 	endpoint := fmt.Sprintf("/v2/users/%d/projects_users?%s", userID, params.Encode())
 	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	var projectUsers []ProjectUser
 	if err := c.handleResponse(resp, &projectUsers); err != nil {
 		return nil, nil, err
 	}
-	
+
 	// Extract pagination metadata from headers
 	meta := c.extractPaginationMeta(resp, len(projectUsers))
-	
+
 	return projectUsers, meta, nil
 }
 
@@ -413,12 +422,12 @@ func (c *Client) ListCampuses(ctx context.Context) ([]Campus, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var campuses []Campus
 	if err := c.handleResponse(resp, &campuses); err != nil {
 		return nil, err
 	}
-	
+
 	return campuses, nil
 }
 
@@ -428,12 +437,12 @@ func (c *Client) ListCursuses(ctx context.Context) ([]Cursus, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var cursuses []Cursus
 	if err := c.handleResponse(resp, &cursuses); err != nil {
 		return nil, err
 	}
-	
+
 	return cursuses, nil
 }
 
@@ -442,32 +451,32 @@ func (c *Client) extractPaginationMeta(resp *http.Response, count int) *Paginati
 	meta := &PaginationMeta{
 		Count: count,
 	}
-	
+
 	// Try to extract pagination info from headers
 	if totalStr := resp.Header.Get("X-Total"); totalStr != "" {
 		if total, err := strconv.Atoi(totalStr); err == nil {
 			meta.TotalCount = total
 		}
 	}
-	
+
 	if pageStr := resp.Header.Get("X-Page"); pageStr != "" {
 		if page, err := strconv.Atoi(pageStr); err == nil {
 			meta.Page = page
 		}
 	}
-	
+
 	if perPageStr := resp.Header.Get("X-Per-Page"); perPageStr != "" {
 		if perPage, err := strconv.Atoi(perPageStr); err == nil {
 			meta.PerPage = perPage
 		}
 	}
-	
+
 	if totalPagesStr := resp.Header.Get("X-Total-Pages"); totalPagesStr != "" {
 		if totalPages, err := strconv.Atoi(totalPagesStr); err == nil {
 			meta.TotalPages = totalPages
 		}
 	}
-	
+
 	return meta
 }
 
@@ -484,12 +493,12 @@ func (c *Client) GetProjectUser(ctx context.Context, projectUserID int) (*Projec
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var projectUser ProjectUser
 	if err := c.handleResponse(resp, &projectUser); err != nil {
 		return nil, err
 	}
-	
+
 	return &projectUser, nil
 }
 

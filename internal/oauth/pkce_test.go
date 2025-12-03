@@ -54,7 +54,8 @@ func TestCodeChallengeFormat(t *testing.T) {
 
 	// Should only contain base64url characters
 	for _, c := range params.CodeChallenge {
-		if !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
+		isValidChar := (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_'
+		if !isValidChar {
 			t.Errorf("Code challenge contains invalid character: %c", c)
 		}
 	}
