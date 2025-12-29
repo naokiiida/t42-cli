@@ -506,3 +506,117 @@ func (c *Client) GetProjectUser(ctx context.Context, projectUserID int) (*Projec
 func (c *Client) GetToken() string {
 	return c.token
 }
+
+// ListUsersOptions represents options for listing users
+type ListUsersOptions struct {
+	Page              int
+	PerPage           int
+	CampusID          int
+	CursusID          int
+	Sort              string
+	// Filter options
+	FilterLogin       string
+	FilterCampusID    int
+	FilterCursusID    int
+	FilterActive      *bool
+	FilterStaff       *bool
+	FilterAlumni      *bool
+}
+
+// ListUsers returns a list of users with optional filtering
+func (c *Client) ListUsers(ctx context.Context, opts *ListUsersOptions) ([]User, *PaginationMeta, error) {
+	if opts == nil {
+		opts = &ListUsersOptions{}
+	}
+
+	// Set defaults
+	if opts.PerPage == 0 {
+		opts.PerPage = DefaultPerPage
+	}
+	if opts.Page == 0 {
+		opts.Page = 1
+	}
+
+	// Build query parameters
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(opts.Page))
+	params.Set("per_page", strconv.Itoa(opts.PerPage))
+
+	if opts.FilterCampusID > 0 {
+		params.Set("filter[campus_id]", strconv.Itoa(opts.FilterCampusID))
+	}
+	if opts.FilterCursusID > 0 {
+		params.Set("filter[cursus_id]", strconv.Itoa(opts.FilterCursusID))
+	}
+	if opts.FilterLogin != "" {
+		params.Set("filter[login]", opts.FilterLogin)
+	}
+	if opts.FilterActive != nil {
+		params.Set("filter[active]", strconv.FormatBool(*opts.FilterActive))
+	}
+	if opts.FilterStaff != nil {
+		params.Set("filter[staff]", strconv.FormatBool(*opts.FilterStaff))
+	}
+	if opts.FilterAlumni != nil {
+		params.Set("filter[alumni]", strconv.FormatBool(*opts.FilterAlumni))
+	}
+	if opts.Sort != "" {
+		params.Set("sort", opts.Sort)
+	}
+
+	endpoint := "/v2/users?" + params.Encode()
+	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var users []User
+	if err := c.handleResponse(resp, &users); err != nil {
+		return nil, nil, err
+	}
+
+	// Extract pagination metadata from headers
+	meta := c.extractPaginationMeta(resp, len(users))
+
+	return users, meta, nil
+}
+
+// ListCampusUsers returns a list of users from a specific campus
+func (c *Client) ListCampusUsers(ctx context.Context, campusID int, opts *ListUsersOptions) ([]User, *PaginationMeta, error) {
+	if opts == nil {
+		opts = &ListUsersOptions{}
+	}
+
+	// Set defaults
+	if opts.PerPage == 0 {
+		opts.PerPage = DefaultPerPage
+	}
+	if opts.Page == 0 {
+		opts.Page = 1
+	}
+
+	// Build query parameters
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(opts.Page))
+	params.Set("per_page", strconv.Itoa(opts.PerPage))
+
+	if opts.Sort != "" {
+		params.Set("sort", opts.Sort)
+	}
+
+	endpoint := fmt.Sprintf("/v2/campus/%d/users?%s", campusID, params.Encode())
+	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var users []User
+	if err := c.handleResponse(resp, &users); err != nil {
+		return nil, nil, err
+	}
+
+	// Extract pagination metadata from headers
+	meta := c.extractPaginationMeta(resp, len(users))
+
+	return users, meta, nil
+}
