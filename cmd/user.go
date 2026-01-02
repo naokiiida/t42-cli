@@ -209,10 +209,11 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 	if cursusID > 0 {
 		// Use cursus_users endpoint for full data (level, blackhole, etc.)
 		cursusOpts := &api.ListCursusUsersOptions{
-			Page:     page,
-			PerPage:  perPage,
-			CampusID: campusID,
-			Sort:     sort,
+			Page:         page,
+			PerPage:      perPage,
+			CampusID:     campusID,
+			Sort:         sort,
+			FilterActive: opts.FilterActive,
 		}
 
 		cursusUsers, cursusMeta, err := client.ListCursusUsers(ctx, cursusID, cursusOpts)

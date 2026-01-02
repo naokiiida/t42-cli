@@ -580,13 +580,13 @@ func (c *Client) ListUsers(ctx context.Context, opts *ListUsersOptions) ([]User,
 }
 
 // ListCursusUsersOptions represents options for listing cursus users
+// Note: /v2/cursus_users does not support alumni filter (only /v2/users does)
 type ListCursusUsersOptions struct {
-	Page           int
-	PerPage        int
-	CampusID       int
-	Sort           string
-	FilterActive   *bool
-	FilterAlumni   *bool
+	Page         int
+	PerPage      int
+	CampusID     int
+	Sort         string
+	FilterActive *bool
 }
 
 // ListCursusUsers returns a list of cursus users with full data (level, blackhole, etc.)
@@ -612,6 +612,9 @@ func (c *Client) ListCursusUsers(ctx context.Context, cursusID int, opts *ListCu
 
 	if opts.CampusID > 0 {
 		params.Set("filter[campus_id]", strconv.Itoa(opts.CampusID))
+	}
+	if opts.FilterActive != nil {
+		params.Set("filter[active]", strconv.FormatBool(*opts.FilterActive))
 	}
 	if opts.Sort != "" {
 		params.Set("sort", opts.Sort)
