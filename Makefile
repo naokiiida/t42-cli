@@ -8,7 +8,7 @@ build:
 	go build -o $(BINARY_NAME) .
 
 install:
-	go install
+	go install .
 
 tidy:
 	go mod tidy
