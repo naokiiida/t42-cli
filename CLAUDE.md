@@ -115,6 +115,7 @@ t42-cli/
 - Return early on errors (guard clauses)
 - Check errors immediately after function calls
 - Always check and log errors from deferred `Close()` calls: `if err := resp.Body.Close(); err != nil { fmt.Fprintf(os.Stderr, ...) }`
+- Never ignore errors from `json.Marshal()` or `json.MarshalIndent()` - always check and wrap
 
 **CLI Patterns**:
 - Use Cobra for command structure
@@ -122,6 +123,8 @@ t42-cli/
 - Use `--json` flag for JSON output
 - Use `-v/--verbose` for debug output
 - Campus name resolution: convert user-friendly names (e.g., "tokyo") to campus IDs via API lookup
+- Validate mutually exclusive flags early (return error before API calls)
+- Helpful error messages: show available options when user input is invalid
 
 **API Client Patterns**:
 - Functional options pattern: `WithBaseURL()`, `WithTimeout()`, `WithTokenRefresher()`
@@ -200,16 +203,19 @@ func convertCursusUsersToUsers(cursusUsers []CursusUser, cursusID int) []User {
 - Feature branches: `claude/feature-name-*`
 
 **Recent Feature Additions** (commits):
+- `cb862ba`: Comprehensive test suite for blackhole status filter logic
+- `94c56e8`: Improved validation and error handling (mutually exclusive flags, better error messages)
+- `7a5b598`: Fixed ListCampusUsers to apply filter options correctly
 - `24ba185`: Fixed working campus, cursus, level, and blackhole filters
-- `493dd82`: Updated README with user command examples
 - `12e839d`: User query with 42cursus progress filters (level, blackhole, projects)
-- `20ff40b`: Fixed lint errors (proper error handling for deferred Close calls)
-- `838e232`: Added XDG config for secrets.env OAuth Client ID and Secret
 
 **Key Implementation Decisions**:
 - Smart endpoint selection: Use `/v2/cursus_users` when level/blackhole data needed, fall back to `/v2/campus/{id}/users` for minimal data
 - Automatic token refresh: Proactive (5 min before expiry) + reactive (on 401 responses)
 - Client-side filtering: Apply unsupported API filters (min-level, blackhole-status) after fetch
+- Flag validation: Mutually exclusive flags checked early (--active/--inactive, --alumni/--non-alumni)
+- Blackhole "past" status: Requires EndAt field to distinguish truly blackholed users from active ones
+- Error messages: Campus name lookup failure shows available options (first 10) to guide users
 
 <!-- END AUTO-MANAGED -->
 
