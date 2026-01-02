@@ -553,10 +553,10 @@ func (c *Client) ListUsers(ctx context.Context, opts *ListUsersOptions) ([]User,
 		params.Set("filter[active]", strconv.FormatBool(*opts.FilterActive))
 	}
 	if opts.FilterStaff != nil {
-		params.Set("filter[staff]", strconv.FormatBool(*opts.FilterStaff))
+		params.Set("filter[staff?]", strconv.FormatBool(*opts.FilterStaff))
 	}
 	if opts.FilterAlumni != nil {
-		params.Set("filter[alumni]", strconv.FormatBool(*opts.FilterAlumni))
+		params.Set("filter[alumni?]", strconv.FormatBool(*opts.FilterAlumni))
 	}
 	if opts.Sort != "" {
 		params.Set("sort", opts.Sort)
@@ -666,10 +666,10 @@ func (c *Client) ListCampusUsers(ctx context.Context, campusID int, opts *ListUs
 		params.Set("filter[active]", strconv.FormatBool(*opts.FilterActive))
 	}
 	if opts.FilterStaff != nil {
-		params.Set("filter[staff]", strconv.FormatBool(*opts.FilterStaff))
+		params.Set("filter[staff?]", strconv.FormatBool(*opts.FilterStaff))
 	}
 	if opts.FilterAlumni != nil {
-		params.Set("filter[alumni]", strconv.FormatBool(*opts.FilterAlumni))
+		params.Set("filter[alumni?]", strconv.FormatBool(*opts.FilterAlumni))
 	}
 	if opts.Sort != "" {
 		params.Set("sort", opts.Sort)

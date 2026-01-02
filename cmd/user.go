@@ -163,6 +163,11 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("--alumni and --non-alumni are mutually exclusive")
 	}
 
+	// Validate alumni filter compatibility with cursus-id
+	if err := validateAlumniFlagCompatibility(alumni, nonAlumni, cursusID); err != nil {
+		return err
+	}
+
 	// Build options
 	opts := &api.ListUsersOptions{
 		Page:           page,
@@ -428,6 +433,15 @@ func matchesBlackholeStatus(cursusUser *api.CursusUser, status string, days int,
 	default:
 		return true
 	}
+}
+
+// validateAlumniFlagCompatibility checks if alumni/non-alumni flags can be used with cursus-id
+// The /v2/cursus_users endpoint does not support alumni filtering
+func validateAlumniFlagCompatibility(alumni, nonAlumni bool, cursusID int) error {
+	if (alumni || nonAlumni) && cursusID > 0 {
+		return fmt.Errorf("--alumni and --non-alumni filters are not compatible with --cursus-id; the /v2/cursus_users endpoint does not support alumni filtering. Remove --cursus-id to use alumni filtering")
+	}
+	return nil
 }
 
 func printUsersTable(users []api.User, meta *api.PaginationMeta, cursusID int) {

@@ -66,7 +66,7 @@ t42-cli/
 │   ├── root.go             # Root command, global flags, API client factory
 │   ├── auth.go             # OAuth2 login/logout/status commands
 │   ├── user.go             # User list/show commands with filters (campus, cursus, level, blackhole)
-│   ├── user_test.go        # Tests for blackhole status filtering and cursus user matching
+│   ├── user_test.go        # Tests for blackhole filtering, cursus matching, flag validation
 │   ├── project.go          # Project list/show/clone commands
 │   └── util.go             # Shared utility functions (truncateString, etc.)
 ├── internal/
@@ -93,11 +93,12 @@ t42-cli/
 
 **Data Flow**:
 1. CLI commands in `cmd/` parse flags and call API methods
-2. `cmd/root.go:NewAPIClient()` creates authenticated API client with token refresh callback
-3. `internal/api/` handles HTTP requests with automatic token refresh on 401 responses
-4. Smart endpoint selection: switches between `/v2/campus/{id}/users` and `/v2/cursus_users` based on filter requirements
-5. `internal/config/` manages credentials and XDG-compliant file paths
-6. `internal/oauth/` generates PKCE parameters for secure OAuth2 flow
+2. Flag validation: check for mutually exclusive flags and endpoint compatibility
+3. `cmd/root.go:NewAPIClient()` creates authenticated API client with token refresh callback
+4. `internal/api/` handles HTTP requests with automatic token refresh on 401 responses
+5. Smart endpoint selection: switches between `/v2/campus/{id}/users` and `/v2/cursus_users` based on filter requirements
+6. `internal/config/` manages credentials and XDG-compliant file paths
+7. `internal/oauth/` generates PKCE parameters for secure OAuth2 flow
 
 <!-- END AUTO-MANAGED -->
 
@@ -107,9 +108,10 @@ t42-cli/
 **Go Style**:
 - Standard Go formatting (`gofmt`)
 - Package names: lowercase, single word (`api`, `config`, `oauth`)
-- File names: lowercase with underscores (`api_test.go`)
+- File names: lowercase with underscores (`api_test.go`, `util.go`)
 - Struct names: PascalCase (`Client`, `Credentials`, `PKCEParams`)
-- Private functions: camelCase (`makeRequest`, `handleResponse`)
+- Private functions: camelCase (`makeRequest`, `handleResponse`, `truncateString`)
+- Shared utilities: Extract reusable helpers to `util.go` in relevant package
 
 **Error Handling**:
 - Wrap errors with context: `fmt.Errorf("failed to X: %w", err)`
@@ -125,7 +127,9 @@ t42-cli/
 - Use `-v/--verbose` for debug output
 - Campus name resolution: convert user-friendly names (e.g., "tokyo") to campus IDs via API lookup
 - Validate mutually exclusive flags early (return error before API calls)
-- Helpful error messages: show available options when user input is invalid
+- Validate endpoint compatibility: check if flags are supported by selected endpoint (e.g., --alumni incompatible with /v2/cursus_users)
+- Helpful error messages: show available options when user input is invalid, explain endpoint limitations
+- JSON output includes `filter_info` to explain client-side vs server-side filtering
 
 **API Client Patterns**:
 - Functional options pattern: `WithBaseURL()`, `WithTimeout()`, `WithTokenRefresher()`
@@ -133,6 +137,7 @@ t42-cli/
 - Token refresh callback for 401 responses
 - Pagination via `X-Total`, `X-Page` headers
 - Proper response body closing in deferred functions with error checking
+- Boolean filter parameters use Ruby on Rails convention with `?` suffix: `filter[alumni?]`, `filter[staff?]`
 
 **Testing Conventions**:
 - Table-driven tests with struct slices containing name, input, and expected output
@@ -141,6 +146,7 @@ t42-cli/
 - Use `t.Run()` for subtests with descriptive names
 - Time-based tests: use `time.Now()` as reference, create relative dates with `AddDate()`
 - Test edge cases: nil values, missing fields, past/future dates, boundary conditions
+- Validation function tests: test all combinations of related flags and parameters
 
 <!-- END AUTO-MANAGED -->
 
@@ -169,7 +175,8 @@ client := NewClient(token, WithBaseURL(url), WithTimeout(30*time.Second))
 
 **Smart Endpoint Selection** (`cmd/user.go`):
 - Detects when full cursus data is needed (level, blackhole filters)
-- Switches from `/v2/campus/{id}/users` to `/v2/cursus_users` automatically
+- Switches from `/v2/campus/{id}/users` to `/v2/cursus_users` automatically when cursus-id specified
+- Applies FilterActive to `/v2/cursus_users` queries (FilterAlumni not supported by this endpoint)
 - Transforms `CursusUser` to `User` via `convertCursusUsersToUsers()` for unified filtering
 
 **Data Structure Transformation** (`cmd/user.go`):
@@ -204,19 +211,23 @@ func convertCursusUsersToUsers(cursusUsers []CursusUser, cursusID int) []User {
 - Feature branches: `claude/feature-name-*`
 
 **Recent Feature Additions** (commits):
+- `55c7b4a`: Fixed ListCursusUsers to apply FilterActive, removed FilterAlumni (endpoint doesn't support it)
+- `33a46f9`: Extracted truncateString helper to util.go for code reuse and clarity
 - `cb862ba`: Comprehensive test suite for blackhole status filter logic
 - `94c56e8`: Improved validation and error handling (mutually exclusive flags, better error messages)
 - `7a5b598`: Fixed ListCampusUsers to apply filter options correctly
-- `24ba185`: Fixed working campus, cursus, level, and blackhole filters
-- `12e839d`: User query with 42cursus progress filters (level, blackhole, projects)
 
 **Key Implementation Decisions**:
 - Smart endpoint selection: Use `/v2/cursus_users` when level/blackhole data needed, fall back to `/v2/campus/{id}/users` for minimal data
+- Endpoint-specific filters: `/v2/cursus_users` supports FilterActive but not FilterAlumni; `/v2/users` supports both
+- Boolean filter parameters: Use Rails convention `filter[alumni?]` and `filter[staff?]` (with `?` suffix)
 - Automatic token refresh: Proactive (5 min before expiry) + reactive (on 401 responses)
 - Client-side filtering: Apply unsupported API filters (min-level, blackhole-status) after fetch
 - Flag validation: Mutually exclusive flags checked early (--active/--inactive, --alumni/--non-alumni)
+- Endpoint compatibility validation: Prevent incompatible flag combinations (e.g., --alumni with --cursus-id) with helpful error messages
 - Blackhole "past" status: Requires EndAt field to distinguish truly blackholed users from active ones
 - Error messages: Campus name lookup failure shows available options (first 10) to guide users
+- Code reuse: Extract common utilities (truncateString) to util.go for shared use across commands
 
 <!-- END AUTO-MANAGED -->
 

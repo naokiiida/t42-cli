@@ -346,6 +346,81 @@ func TestCountCompletedProjects(t *testing.T) {
 	}
 }
 
+func TestValidateAlumniFlagCompatibility(t *testing.T) {
+	tests := []struct {
+		name      string
+		alumni    bool
+		nonAlumni bool
+		cursusID  int
+		wantErr   bool
+		errMsg    string
+	}{
+		{
+			name:     "alumni without cursus-id is valid",
+			alumni:   true,
+			cursusID: 0,
+			wantErr:  false,
+		},
+		{
+			name:      "non-alumni without cursus-id is valid",
+			nonAlumni: true,
+			cursusID:  0,
+			wantErr:   false,
+		},
+		{
+			name:     "alumni with cursus-id returns error",
+			alumni:   true,
+			cursusID: 21,
+			wantErr:  true,
+			errMsg:   "not compatible with --cursus-id",
+		},
+		{
+			name:      "non-alumni with cursus-id returns error",
+			nonAlumni: true,
+			cursusID:  21,
+			wantErr:   true,
+			errMsg:    "not compatible with --cursus-id",
+		},
+		{
+			name:     "no alumni flags with cursus-id is valid",
+			cursusID: 21,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateAlumniFlagCompatibility(tt.alumni, tt.nonAlumni, tt.cursusID)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("validateAlumniFlagCompatibility() = nil, want error containing %q", tt.errMsg)
+				} else if tt.errMsg != "" && !contains(err.Error(), tt.errMsg) {
+					t.Errorf("validateAlumniFlagCompatibility() error = %v, want error containing %q", err, tt.errMsg)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("validateAlumniFlagCompatibility() = %v, want nil", err)
+				}
+			}
+		})
+	}
+}
+
+// contains checks if s contains substr
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
 func TestFilterUsers(t *testing.T) {
 	now := time.Now()
 	pastDate := now.AddDate(0, 0, -10)
