@@ -509,18 +509,16 @@ func (c *Client) GetToken() string {
 
 // ListUsersOptions represents options for listing users
 type ListUsersOptions struct {
-	Page              int
-	PerPage           int
-	CampusID          int
-	CursusID          int
-	Sort              string
+	Page    int
+	PerPage int
+	Sort    string
 	// Filter options
-	FilterLogin       string
-	FilterCampusID    int
-	FilterCursusID    int
-	FilterActive      *bool
-	FilterStaff       *bool
-	FilterAlumni      *bool
+	FilterLogin    string
+	FilterCampusID int
+	FilterCursusID int
+	FilterActive   *bool
+	FilterStaff    *bool
+	FilterAlumni   *bool
 }
 
 // ListUsers returns a list of users with optional filtering
@@ -655,6 +653,21 @@ func (c *Client) ListCampusUsers(ctx context.Context, campusID int, opts *ListUs
 	params.Set("page", strconv.Itoa(opts.Page))
 	params.Set("per_page", strconv.Itoa(opts.PerPage))
 
+	if opts.FilterCursusID > 0 {
+		params.Set("filter[cursus_id]", strconv.Itoa(opts.FilterCursusID))
+	}
+	if opts.FilterLogin != "" {
+		params.Set("filter[login]", opts.FilterLogin)
+	}
+	if opts.FilterActive != nil {
+		params.Set("filter[active]", strconv.FormatBool(*opts.FilterActive))
+	}
+	if opts.FilterStaff != nil {
+		params.Set("filter[staff]", strconv.FormatBool(*opts.FilterStaff))
+	}
+	if opts.FilterAlumni != nil {
+		params.Set("filter[alumni]", strconv.FormatBool(*opts.FilterAlumni))
+	}
 	if opts.Sort != "" {
 		params.Set("sort", opts.Sort)
 	}
