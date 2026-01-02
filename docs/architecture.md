@@ -21,6 +21,7 @@ t42-cli/
 ├── cmd/                  # All CLI commands, one file per command
 │   ├── auth.go           # `t42 auth` command
 │   ├── project.go        # `t42 project` command (includes clone-mine for repo_url)
+│   ├── user.go           # `t42 user` command (list, show with filtering)
 │   └── root.go           # Root command setup (`t42`)
 ├── docs/                 # Project documentation
 │   └── architecture.md   # This file
@@ -127,3 +128,24 @@ For commands that need to access individual team repositories (like `t42 project
 3. **Git Clone**: The command uses the `repo_url` (not the base project `git_url`) to clone the user's actual submission repository.
 
 This approach ensures that users clone their own team repositories rather than the base project template, which is crucial for accessing their actual work and submissions.
+
+### User Listing with Smart Endpoint Selection
+
+The `t42 user list` command implements intelligent endpoint selection based on the requested filters:
+
+1. **User**: Runs `t42 user list --campus-id 26 --cursus-id 21 --min-level 5`.
+2. **Smart Endpoint Detection**:
+   - The command detects that `--min-level` requires full user data (level, blackhole info).
+   - Standard endpoints (`/v2/campus/{id}/users`) return users with `cursus_users: null`.
+   - When `--cursus-id` is specified with level/blackhole filters, it switches to `/v2/cursus_users`.
+3. **API Interaction**:
+   - Calls `ListCursusUsers()` with `filter[cursus_id]` and `filter[campus_id]`.
+   - This endpoint returns `CursusUser` objects with embedded user and full cursus data.
+4. **Data Transformation**:
+   - `convertCursusUsersToUsers()` transforms `[]CursusUser` to `[]User` for unified filtering.
+   - The cursus data is embedded into the user's `CursusUsers` slice.
+5. **Client-Side Filtering**:
+   - `filterUsers()` applies additional filters (min-level, blackhole-status) that aren't API-supported.
+6. **Output**: Results are formatted as a table showing login, name, level, projects, and blackhole status.
+
+This design ensures that users get accurate, filterable data while minimizing unnecessary API calls. See `docs/api_endpoints_guide.md` for detailed endpoint documentation.

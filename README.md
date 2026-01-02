@@ -124,15 +124,23 @@ t42 auth login
 t42 auth status
 t42 auth logout
 
-# Get user information
-t42 user me
-t42 user <login>
+# User management
+t42 user list                              # List users with filters
+t42 user list --campus tokyo --cursus-id 21  # Filter by campus and cursus
+t42 user list --blackhole-status upcoming  # Users with upcoming blackhole
+t42 user list --min-projects 10 --active   # Active users with 10+ projects
+t42 user show <login>                      # Show detailed user information
 
 # Projects
-t42 project <project_id>
+t42 project list                # List projects
+t42 project list --mine         # List your projects
+t42 project show <slug>         # Show project details
+t42 project clone <slug>        # Clone project repository
+t42 project clone-mine <slug>   # Clone your project repository
 
 # JSON output
-t42 user me --json
+t42 user list --json
+t42 project list --json
 
 # Verbose mode
 t42 auth login -v

@@ -52,3 +52,6 @@ credentials.json
 *.sw?
 # OS specific
 .DS_Store
+
+# Claude Code auto-memory
+.claude/auto-memory/dirty-files
