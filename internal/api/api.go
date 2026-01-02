@@ -581,6 +581,61 @@ func (c *Client) ListUsers(ctx context.Context, opts *ListUsersOptions) ([]User,
 	return users, meta, nil
 }
 
+// ListCursusUsersOptions represents options for listing cursus users
+type ListCursusUsersOptions struct {
+	Page           int
+	PerPage        int
+	CampusID       int
+	Sort           string
+	FilterActive   *bool
+	FilterAlumni   *bool
+}
+
+// ListCursusUsers returns a list of cursus users with full data (level, blackhole, etc.)
+// This endpoint provides more detailed data than ListCampusUsers
+func (c *Client) ListCursusUsers(ctx context.Context, cursusID int, opts *ListCursusUsersOptions) ([]CursusUser, *PaginationMeta, error) {
+	if opts == nil {
+		opts = &ListCursusUsersOptions{}
+	}
+
+	// Set defaults
+	if opts.PerPage == 0 {
+		opts.PerPage = DefaultPerPage
+	}
+	if opts.Page == 0 {
+		opts.Page = 1
+	}
+
+	// Build query parameters
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(opts.Page))
+	params.Set("per_page", strconv.Itoa(opts.PerPage))
+	params.Set("filter[cursus_id]", strconv.Itoa(cursusID))
+
+	if opts.CampusID > 0 {
+		params.Set("filter[campus_id]", strconv.Itoa(opts.CampusID))
+	}
+	if opts.Sort != "" {
+		params.Set("sort", opts.Sort)
+	}
+
+	endpoint := "/v2/cursus_users?" + params.Encode()
+	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var cursusUsers []CursusUser
+	if err := c.handleResponse(resp, &cursusUsers); err != nil {
+		return nil, nil, err
+	}
+
+	// Extract pagination metadata from headers
+	meta := c.extractPaginationMeta(resp, len(cursusUsers))
+
+	return cursusUsers, meta, nil
+}
+
 // ListCampusUsers returns a list of users from a specific campus
 func (c *Client) ListCampusUsers(ctx context.Context, campusID int, opts *ListUsersOptions) ([]User, *PaginationMeta, error) {
 	if opts == nil {

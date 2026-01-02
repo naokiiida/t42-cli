@@ -65,12 +65,12 @@ t42-cli/
 ├── cmd/                    # CLI commands (Cobra)
 │   ├── root.go             # Root command, global flags, API client factory
 │   ├── auth.go             # OAuth2 login/logout/status commands
-│   ├── user.go             # User list/show commands with filters
+│   ├── user.go             # User list/show commands with filters (campus, cursus, level, blackhole)
 │   └── project.go          # Project list/show/clone commands
 ├── internal/
 │   ├── api/                # 42 API client
-│   │   ├── api.go          # HTTP client with retry, pagination, token refresh
-│   │   ├── types.go        # API response types (User, Project, Campus, etc.)
+│   │   ├── api.go          # HTTP client with retry, pagination, token refresh, error handling
+│   │   ├── types.go        # API response types (User, Project, Campus, CursusUser, etc.)
 │   │   └── api_test.go     # API client tests
 │   ├── config/             # Configuration management
 │   │   ├── config.go       # Credentials and config loading/saving
@@ -79,18 +79,23 @@ t42-cli/
 │   └── oauth/              # OAuth2 PKCE implementation
 │       ├── pkce.go         # RFC 7636 PKCE code verifier/challenge
 │       └── pkce_test.go    # PKCE tests
+├── docs/                   # Documentation
+│   ├── api_endpoints_guide.md       # API endpoint data completeness analysis
+│   ├── architecture.md              # Detailed architecture documentation
+│   ├── features.md                  # Complete CLI command reference
+│   └── claude_code_development.md   # Development workflow guide
 ├── Makefile                # Build automation
 ├── go.mod                  # Go module definition
-├── lefthook.yml            # Git hooks configuration
-└── docs/                   # Documentation
+└── lefthook.yml            # Git hooks configuration
 ```
 
 **Data Flow**:
 1. CLI commands in `cmd/` parse flags and call API methods
-2. `cmd/root.go:NewAPIClient()` creates authenticated API client
-3. `internal/api/` handles HTTP requests with automatic token refresh
-4. `internal/config/` manages credentials and XDG-compliant file paths
-5. `internal/oauth/` generates PKCE parameters for secure OAuth2 flow
+2. `cmd/root.go:NewAPIClient()` creates authenticated API client with token refresh callback
+3. `internal/api/` handles HTTP requests with automatic token refresh on 401 responses
+4. Smart endpoint selection: switches between `/v2/campus/{id}/users` and `/v2/cursus_users` based on filter requirements
+5. `internal/config/` manages credentials and XDG-compliant file paths
+6. `internal/oauth/` generates PKCE parameters for secure OAuth2 flow
 
 <!-- END AUTO-MANAGED -->
 
@@ -108,18 +113,21 @@ t42-cli/
 - Wrap errors with context: `fmt.Errorf("failed to X: %w", err)`
 - Return early on errors (guard clauses)
 - Check errors immediately after function calls
+- Always check and log errors from deferred `Close()` calls: `if err := resp.Body.Close(); err != nil { fmt.Fprintf(os.Stderr, ...) }`
 
 **CLI Patterns**:
 - Use Cobra for command structure
 - Global flags in `rootCmd.PersistentFlags()`
 - Use `--json` flag for JSON output
 - Use `-v/--verbose` for debug output
+- Campus name resolution: convert user-friendly names (e.g., "tokyo") to campus IDs via API lookup
 
 **API Client Patterns**:
-- Functional options pattern: `WithBaseURL()`, `WithTimeout()`
+- Functional options pattern: `WithBaseURL()`, `WithTimeout()`, `WithTokenRefresher()`
 - Automatic retry on 5xx and 429 (rate limiting)
 - Token refresh callback for 401 responses
 - Pagination via `X-Total`, `X-Page` headers
+- Proper response body closing in deferred functions with error checking
 
 <!-- END AUTO-MANAGED -->
 
@@ -176,10 +184,17 @@ func convertCursusUsersToUsers(cursusUsers []CursusUser, cursusID int) []User {
 - `main` branch for releases
 - Feature branches: `claude/feature-name-*`
 
-**Recent Feature Additions**:
-- User query with 42cursus progress filters (commit 12e839d)
-- Smart endpoint selection for optimal API data retrieval
-- Level and blackhole status filtering for user listings
+**Recent Feature Additions** (commits):
+- `493dd82`: Updated README with user command examples
+- `12e839d`: User query with 42cursus progress filters (level, blackhole, projects)
+- `20ff40b`: Fixed lint errors (proper error handling for deferred Close calls)
+- `838e232`: Added XDG config for secrets.env OAuth Client ID and Secret
+- `1e95782`: Fixed OAuth config test
+
+**Key Implementation Decisions**:
+- Smart endpoint selection: Use `/v2/cursus_users` when level/blackhole data needed, fall back to `/v2/campus/{id}/users` for minimal data
+- Automatic token refresh: Proactive (5 min before expiry) + reactive (on 401 responses)
+- Client-side filtering: Apply unsupported API filters (min-level, blackhole-status) after fetch
 
 <!-- END AUTO-MANAGED -->
 

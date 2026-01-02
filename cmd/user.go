@@ -171,11 +171,31 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 		opts.FilterStaff = &trueVal
 	}
 
-	// List users
+	// List users - use cursus_users endpoint when cursus filtering is needed for full data
 	var users []api.User
 	var meta *api.PaginationMeta
 
-	if campusID > 0 {
+	// Use ListCursusUsers when we need level/blackhole data (cursus-id specified or filters requiring it)
+	needsFullData := cursusID > 0 || minLevel > 0 || maxLevel > 0 || blackholeStatus != ""
+
+	if needsFullData && cursusID > 0 {
+		// Use cursus_users endpoint for full data (level, blackhole, etc.)
+		cursusOpts := &api.ListCursusUsersOptions{
+			Page:     page,
+			PerPage:  perPage,
+			CampusID: campusID,
+			Sort:     sort,
+		}
+
+		cursusUsers, cursusMeta, err := client.ListCursusUsers(ctx, cursusID, cursusOpts)
+		if err != nil {
+			return fmt.Errorf("failed to list cursus users: %w", err)
+		}
+
+		// Convert CursusUser to User for filtering and display
+		users = convertCursusUsersToUsers(cursusUsers, cursusID)
+		meta = cursusMeta
+	} else if campusID > 0 {
 		users, meta, err = client.ListCampusUsers(ctx, campusID, opts)
 	} else {
 		users, meta, err = client.ListUsers(ctx, opts)
@@ -243,6 +263,33 @@ type filterCriteria struct {
 	cursusID        int
 	minLevel        float64
 	maxLevel        float64
+}
+
+// convertCursusUsersToUsers converts CursusUser objects to User objects for unified filtering and display
+// This is needed because ListCursusUsers returns CursusUser with nested User, while other endpoints return User directly
+func convertCursusUsersToUsers(cursusUsers []api.CursusUser, cursusID int) []api.User {
+	users := make([]api.User, 0, len(cursusUsers))
+
+	for _, cu := range cursusUsers {
+		user := cu.User
+		// Embed the cursus information into the user's CursusUsers slice
+		user.CursusUsers = []api.CursusUser{
+			{
+				ID:           cu.ID,
+				BeginAt:      cu.BeginAt,
+				EndAt:        cu.EndAt,
+				Grade:        cu.Grade,
+				Level:        cu.Level,
+				Skills:       cu.Skills,
+				BlackholedAt: cu.BlackholedAt,
+				Cursus:       cu.Cursus,
+				HasCoalition: cu.HasCoalition,
+			},
+		}
+		users = append(users, user)
+	}
+
+	return users
 }
 
 func filterUsers(users []api.User, criteria filterCriteria) []api.User {
