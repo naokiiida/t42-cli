@@ -66,6 +66,7 @@ t42-cli/
 │   ├── root.go             # Root command, global flags, API client factory
 │   ├── auth.go             # OAuth2 login/logout/status commands
 │   ├── user.go             # User list/show commands with filters (campus, cursus, level, blackhole)
+│   ├── user_test.go        # Tests for blackhole status filtering and cursus user matching
 │   └── project.go          # Project list/show/clone commands
 ├── internal/
 │   ├── api/                # 42 API client
@@ -129,6 +130,14 @@ t42-cli/
 - Pagination via `X-Total`, `X-Page` headers
 - Proper response body closing in deferred functions with error checking
 
+**Testing Conventions**:
+- Table-driven tests with struct slices containing name, input, and expected output
+- Test function naming: `TestFunctionName` for unit tests
+- Test case naming: descriptive strings explaining the scenario (e.g., "none: nil cursusUser returns true")
+- Use `t.Run()` for subtests with descriptive names
+- Time-based tests: use `time.Now()` as reference, create relative dates with `AddDate()`
+- Test edge cases: nil values, missing fields, past/future dates, boundary conditions
+
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: patterns -->
@@ -171,6 +180,12 @@ func convertCursusUsersToUsers(cursusUsers []CursusUser, cursusID int) []User {
 - API-unsupported filters applied after fetch (min-level, blackhole-status)
 - Reduces API complexity while maintaining rich filtering capabilities
 
+**Blackhole Status Filtering** (`cmd/user.go`, `cmd/user_test.go`):
+- Four status types: `none` (no blackhole), `active` (has blackhole, not ended), `past` (blackholed and ended), `upcoming` (blackhole within threshold)
+- Critical validation: `past` status requires both `BlackholedAt` in past AND `EndAt` set (distinguishes truly blackholed from active users)
+- Time-relative logic using `time.Now()` for past/future comparisons
+- `upcoming` status uses configurable day threshold for "approaching blackhole" detection
+
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: git-insights -->
@@ -185,11 +200,11 @@ func convertCursusUsersToUsers(cursusUsers []CursusUser, cursusID int) []User {
 - Feature branches: `claude/feature-name-*`
 
 **Recent Feature Additions** (commits):
+- `24ba185`: Fixed working campus, cursus, level, and blackhole filters
 - `493dd82`: Updated README with user command examples
 - `12e839d`: User query with 42cursus progress filters (level, blackhole, projects)
 - `20ff40b`: Fixed lint errors (proper error handling for deferred Close calls)
 - `838e232`: Added XDG config for secrets.env OAuth Client ID and Secret
-- `1e95782`: Fixed OAuth config test
 
 **Key Implementation Decisions**:
 - Smart endpoint selection: Use `/v2/cursus_users` when level/blackhole data needed, fall back to `/v2/campus/{id}/users` for minimal data
