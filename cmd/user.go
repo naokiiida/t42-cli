@@ -200,10 +200,13 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 	var users []api.User
 	var meta *api.PaginationMeta
 
-	// Use ListCursusUsers when we need level/blackhole data (cursus-id specified or filters requiring it)
-	needsFullData := cursusID > 0 || minLevel > 0 || maxLevel > 0 || blackholeStatus != ""
-
-	if needsFullData && cursusID > 0 {
+	// Use ListCursusUsers when cursusID is specified.
+	// This endpoint provides full cursus data (level, blackhole, grade) needed for:
+	// - Level filtering (--min-level, --max-level)
+	// - Blackhole status filtering (--blackhole-status)
+	// Without cursusID, we fall back to basic user endpoints where these filters
+	// have limited effect since cursus data may be incomplete.
+	if cursusID > 0 {
 		// Use cursus_users endpoint for full data (level, blackhole, etc.)
 		cursusOpts := &api.ListCursusUsersOptions{
 			Page:     page,
@@ -244,6 +247,10 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 		output := map[string]interface{}{
 			"users": filteredUsers,
 			"meta":  meta,
+			"filter_info": map[string]interface{}{
+				"filtered_count": len(filteredUsers),
+				"note":           "meta reflects server-side pagination; filtered_count shows results after client-side filtering",
+			},
 		}
 		jsonData, err := json.MarshalIndent(output, "", "  ")
 		if err != nil {

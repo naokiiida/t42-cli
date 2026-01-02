@@ -59,7 +59,7 @@ make clean              # Remove built binary
 <!-- AUTO-MANAGED: architecture -->
 ## Architecture
 
-```
+```text
 t42-cli/
 ├── main.go                 # Entry point - calls cmd.Execute()
 ├── cmd/                    # CLI commands (Cobra)
@@ -67,7 +67,8 @@ t42-cli/
 │   ├── auth.go             # OAuth2 login/logout/status commands
 │   ├── user.go             # User list/show commands with filters (campus, cursus, level, blackhole)
 │   ├── user_test.go        # Tests for blackhole status filtering and cursus user matching
-│   └── project.go          # Project list/show/clone commands
+│   ├── project.go          # Project list/show/clone commands
+│   └── util.go             # Shared utility functions (truncateString, etc.)
 ├── internal/
 │   ├── api/                # 42 API client
 │   │   ├── api.go          # HTTP client with retry, pagination, token refresh, error handling
