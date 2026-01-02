@@ -127,15 +127,40 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 		campusNameLower := strings.ToLower(campusName)
 		for _, campus := range campuses {
 			if strings.ToLower(campus.Name) == campusNameLower ||
-			   strings.ToLower(campus.City) == campusNameLower {
+				strings.ToLower(campus.City) == campusNameLower {
 				campusID = campus.ID
 				break
 			}
 		}
 
 		if campusID == 0 {
-			return fmt.Errorf("campus '%s' not found", campusName)
+			// Build list of available campus names for error message
+			var campusOptions []string
+			for _, campus := range campuses {
+				label := campus.Name
+				cityLower := strings.ToLower(campus.City)
+				nameLower := strings.ToLower(campus.Name)
+				if campus.City != "" && cityLower != nameLower {
+					label = fmt.Sprintf("%s (%s)", campus.Name, campus.City)
+				}
+				campusOptions = append(campusOptions, label)
+			}
+			// Show first 10 options to avoid overwhelming output
+			if len(campusOptions) > 10 {
+				return fmt.Errorf("campus %q not found. Some available campuses: %s, ... (use --campus-id for full list)",
+					campusName, strings.Join(campusOptions[:10], ", "))
+			}
+			return fmt.Errorf("campus %q not found. Available campuses: %s",
+				campusName, strings.Join(campusOptions, ", "))
 		}
+	}
+
+	// Validate mutually exclusive flags
+	if active && inactive {
+		return fmt.Errorf("--active and --inactive are mutually exclusive")
+	}
+	if alumni && nonAlumni {
+		return fmt.Errorf("--alumni and --non-alumni are mutually exclusive")
 	}
 
 	// Build options
@@ -148,19 +173,19 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 	}
 
 	// Handle active/inactive flags
-	if active && !inactive {
+	if active {
 		trueVal := true
 		opts.FilterActive = &trueVal
-	} else if inactive && !active {
+	} else if inactive {
 		falseVal := false
 		opts.FilterActive = &falseVal
 	}
 
 	// Handle alumni flags
-	if alumni && !nonAlumni {
+	if alumni {
 		trueVal := true
 		opts.FilterAlumni = &trueVal
-	} else if nonAlumni && !alumni {
+	} else if nonAlumni {
 		falseVal := false
 		opts.FilterAlumni = &falseVal
 	}
@@ -220,7 +245,10 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 			"users": filteredUsers,
 			"meta":  meta,
 		}
-		jsonData, _ := json.MarshalIndent(output, "", "  ")
+		jsonData, err := json.MarshalIndent(output, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON output: %w", err)
+		}
 		fmt.Println(string(jsonData))
 	} else {
 		printUsersTable(filteredUsers, meta, cursusID)
@@ -247,7 +275,10 @@ func runShowUser(cmd *cobra.Command, args []string) error {
 	}
 
 	if GetJSONOutput() {
-		jsonData, _ := json.MarshalIndent(user, "", "  ")
+		jsonData, err := json.MarshalIndent(user, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal user to JSON: %w", err)
+		}
 		fmt.Println(string(jsonData))
 	} else {
 		printUserDetails(user)
@@ -378,7 +409,8 @@ func matchesBlackholeStatus(cursusUser *api.CursusUser, status string, days int,
 	case "active":
 		return cursusUser.BlackholedAt != nil && cursusUser.EndAt == nil
 	case "past":
-		return cursusUser.BlackholedAt != nil && cursusUser.BlackholedAt.Before(now)
+		// User has been blackholed: blackhole date passed AND cursus ended
+		return cursusUser.BlackholedAt != nil && cursusUser.BlackholedAt.Before(now) && cursusUser.EndAt != nil
 	case "upcoming":
 		if cursusUser.BlackholedAt == nil {
 			return false
