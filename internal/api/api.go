@@ -416,19 +416,37 @@ func (c *Client) ListUserProjects(ctx context.Context, userID int, opts *ListUse
 	return projectUsers, meta, nil
 }
 
-// ListCampuses returns a list of campuses
+// ListCampuses returns a list of all campuses (handles pagination automatically)
 func (c *Client) ListCampuses(ctx context.Context) ([]Campus, error) {
-	resp, err := c.makeRequest(ctx, "GET", "/v2/campus", nil)
-	if err != nil {
-		return nil, err
+	var allCampuses []Campus
+	page := 1
+	perPage := 100
+
+	for {
+		params := url.Values{}
+		params.Set("page", strconv.Itoa(page))
+		params.Set("per_page", strconv.Itoa(perPage))
+
+		resp, err := c.makeRequest(ctx, "GET", "/v2/campus?"+params.Encode(), nil)
+		if err != nil {
+			return nil, err
+		}
+
+		var campuses []Campus
+		if err := c.handleResponse(resp, &campuses); err != nil {
+			return nil, err
+		}
+
+		allCampuses = append(allCampuses, campuses...)
+
+		// If we got fewer than perPage, we've reached the last page
+		if len(campuses) < perPage {
+			break
+		}
+		page++
 	}
 
-	var campuses []Campus
-	if err := c.handleResponse(resp, &campuses); err != nil {
-		return nil, err
-	}
-
-	return campuses, nil
+	return allCampuses, nil
 }
 
 // ListCursuses returns a list of cursuses
@@ -587,6 +605,8 @@ type ListCursusUsersOptions struct {
 	CampusID     int
 	Sort         string
 	FilterActive *bool
+	MinLevel     float64 // For range[level] filtering (server-side)
+	MaxLevel     float64 // For range[level] filtering (server-side)
 }
 
 // ListCursusUsers returns a list of cursus users with full data (level, blackhole, etc.)
@@ -618,6 +638,18 @@ func (c *Client) ListCursusUsers(ctx context.Context, cursusID int, opts *ListCu
 	}
 	if opts.Sort != "" {
 		params.Set("sort", opts.Sort)
+	}
+	// Add level range filtering (server-side)
+	if opts.MinLevel > 0 || opts.MaxLevel > 0 {
+		minStr := ""
+		maxStr := ""
+		if opts.MinLevel > 0 {
+			minStr = strconv.FormatFloat(opts.MinLevel, 'f', -1, 64)
+		}
+		if opts.MaxLevel > 0 {
+			maxStr = strconv.FormatFloat(opts.MaxLevel, 'f', -1, 64)
+		}
+		params.Set("range[level]", minStr+","+maxStr)
 	}
 
 	endpoint := "/v2/cursus_users?" + params.Encode()
