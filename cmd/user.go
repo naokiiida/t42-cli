@@ -37,6 +37,7 @@ You can filter users by:
   - Active status (--active, --inactive)
   - Alumni status (--alumni, --non-alumni)
   - Staff status (--staff)
+  - Online status (--online)
 
 Examples:
   # List users from a specific campus
@@ -49,7 +50,10 @@ Examples:
   t42 user list --active --min-projects 10
 
   # List users from Tokyo campus in 42cursus
-  t42 user list --campus tokyo --cursus-id 21`,
+  t42 user list --campus tokyo --cursus-id 21
+
+  # List online users from Tokyo campus
+  t42 user list --campus tokyo --online`,
 	RunE: runListUsers,
 }
 
@@ -88,6 +92,7 @@ func init() {
 	listUsersCmd.Flags().Int("blackhole-days", 30, "Number of days to consider for 'upcoming' blackhole status")
 	listUsersCmd.Flags().Float64("min-level", 0, "Filter users with minimum cursus level")
 	listUsersCmd.Flags().Float64("max-level", 0, "Filter users with maximum cursus level")
+	listUsersCmd.Flags().Bool("online", false, "Filter online users only (currently logged in at a cluster)")
 }
 
 func runListUsers(cmd *cobra.Command, args []string) error {
@@ -116,6 +121,7 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 	blackholeDays, _ := cmd.Flags().GetInt("blackhole-days")
 	minLevel, _ := cmd.Flags().GetFloat64("min-level")
 	maxLevel, _ := cmd.Flags().GetFloat64("max-level")
+	online, _ := cmd.Flags().GetBool("online")
 
 	// Resolve campus name to campus ID if provided
 	if campusName != "" {
@@ -219,6 +225,8 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 			CampusID:     campusID,
 			Sort:         sort,
 			FilterActive: opts.FilterActive,
+			MinLevel:     minLevel, // Server-side level range filtering
+			MaxLevel:     maxLevel,
 		}
 
 		cursusUsers, cursusMeta, err := client.ListCursusUsers(ctx, cursusID, cursusOpts)
@@ -247,6 +255,7 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 		cursusID:        cursusID,
 		minLevel:        minLevel,
 		maxLevel:        maxLevel,
+		online:          online,
 	})
 
 	if GetJSONOutput() {
@@ -307,6 +316,7 @@ type filterCriteria struct {
 	cursusID        int
 	minLevel        float64
 	maxLevel        float64
+	online          bool
 }
 
 // convertCursusUsersToUsers converts CursusUser objects to User objects for unified filtering and display
@@ -316,6 +326,11 @@ func convertCursusUsersToUsers(cursusUsers []api.CursusUser, cursusID int) []api
 
 	for _, cu := range cursusUsers {
 		user := cu.User
+		// Ensure Cursus.ID is set - the API might not populate it when querying by cursus ID
+		cursus := cu.Cursus
+		if cursus.ID == 0 {
+			cursus.ID = cursusID
+		}
 		// Embed the cursus information into the user's CursusUsers slice
 		user.CursusUsers = []api.CursusUser{
 			{
@@ -326,7 +341,7 @@ func convertCursusUsersToUsers(cursusUsers []api.CursusUser, cursusID int) []api
 				Level:        cu.Level,
 				Skills:       cu.Skills,
 				BlackholedAt: cu.BlackholedAt,
-				Cursus:       cu.Cursus,
+				Cursus:       cursus,
 				HasCoalition: cu.HasCoalition,
 			},
 		}
@@ -338,7 +353,7 @@ func convertCursusUsersToUsers(cursusUsers []api.CursusUser, cursusID int) []api
 
 func filterUsers(users []api.User, criteria filterCriteria) []api.User {
 	if criteria.minProjects == 0 && criteria.blackholeStatus == "" &&
-	   criteria.minLevel == 0 && criteria.maxLevel == 0 {
+	   criteria.minLevel == 0 && criteria.maxLevel == 0 && !criteria.online {
 		return users
 	}
 
@@ -346,6 +361,11 @@ func filterUsers(users []api.User, criteria filterCriteria) []api.User {
 	now := time.Now()
 
 	for _, user := range users {
+		// Filter by online status (user is logged in at a cluster)
+		if criteria.online && user.Location == "" {
+			continue
+		}
+
 		// Filter by completed projects
 		if criteria.minProjects > 0 {
 			completedCount := countCompletedProjects(user.ProjectsUsers)

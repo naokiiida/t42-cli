@@ -429,8 +429,9 @@ func TestFilterUsers(t *testing.T) {
 
 	users := []api.User{
 		{
-			ID:    1,
-			Login: "user1",
+			ID:       1,
+			Login:    "user1",
+			Location: "e1r1p1", // online
 			CursusUsers: []api.CursusUser{
 				{Cursus: api.Cursus{ID: 21}, Level: 5.0, BlackholedAt: nil},
 			},
@@ -440,8 +441,9 @@ func TestFilterUsers(t *testing.T) {
 			},
 		},
 		{
-			ID:    2,
-			Login: "user2",
+			ID:       2,
+			Login:    "user2",
+			Location: "", // offline
 			CursusUsers: []api.CursusUser{
 				{Cursus: api.Cursus{ID: 21}, Level: 10.0, BlackholedAt: &futureDate},
 			},
@@ -450,8 +452,9 @@ func TestFilterUsers(t *testing.T) {
 			},
 		},
 		{
-			ID:    3,
-			Login: "user3",
+			ID:       3,
+			Login:    "user3",
+			Location: "e2r3p5", // online
 			CursusUsers: []api.CursusUser{
 				{Cursus: api.Cursus{ID: 21}, Level: 15.0, BlackholedAt: &pastDate, EndAt: &pastDate},
 			},
@@ -549,6 +552,24 @@ func TestFilterUsers(t *testing.T) {
 			},
 			wantLen: 2,
 			wantIDs: []int{1, 3},
+		},
+		{
+			name: "filter by online status",
+			criteria: filterCriteria{
+				online: true,
+			},
+			wantLen: 2,
+			wantIDs: []int{1, 3},
+		},
+		{
+			name: "filter by online and min level",
+			criteria: filterCriteria{
+				online:   true,
+				minLevel: 10.0,
+				cursusID: 21,
+			},
+			wantLen: 1,
+			wantIDs: []int{3},
 		},
 	}
 
