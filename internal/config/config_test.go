@@ -505,7 +505,7 @@ func TestLoadDevelopmentSecrets(t *testing.T) {
 		// Create test .env file
 		envContent := `FT_UID=test_client_id
 FT_SECRET=test_client_secret
-REDIRECT_URL=http://localhost:3000/callback
+REDIRECT_URL=http://localhost:8080/callback
 `
 		envPath := GetDevelopmentEnvFilePath()
 
@@ -535,8 +535,8 @@ REDIRECT_URL=http://localhost:3000/callback
 		if secrets.ClientSecret != "test_client_secret" {
 			t.Errorf("ClientSecret = %v, want %v", secrets.ClientSecret, "test_client_secret")
 		}
-		if secrets.RedirectURL != "http://localhost:3000/callback" {
-			t.Errorf("RedirectURL = %v, want %v", secrets.RedirectURL, "http://localhost:3000/callback")
+		if secrets.RedirectURL != "http://localhost:8080/callback" {
+			t.Errorf("RedirectURL = %v, want %v", secrets.RedirectURL, "http://localhost:8080/callback")
 		}
 	})
 
