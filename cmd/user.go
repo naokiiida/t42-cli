@@ -39,6 +39,14 @@ You can filter users by:
   - Staff status (--staff)
   - Online status (--online)
 
+Pagination:
+  When using client-side filters (--online, --min-projects, --blackhole-status),
+  the command automatically fetches multiple API pages until --limit results are
+  found. This ensures you get the expected number of results regardless of how
+  sparse the matching users are across pages.
+
+  Without client-side filters, traditional --page pagination is used.
+
 Examples:
   # List users from a specific campus
   t42 user list --campus-id 1
@@ -52,8 +60,8 @@ Examples:
   # List users from Tokyo campus in 42cursus
   t42 user list --campus tokyo --cursus-id 21
 
-  # List online users from Tokyo campus
-  t42 user list --campus tokyo --online`,
+  # List online users from Tokyo campus (progressive fetch)
+  t42 user list --campus tokyo --online --limit 10`,
 	RunE: runListUsers,
 }
 
@@ -76,8 +84,9 @@ func init() {
 	rootCmd.AddCommand(userCmd)
 
 	// List command flags
-	listUsersCmd.Flags().IntP("page", "p", 1, "Page number")
-	listUsersCmd.Flags().Int("per-page", 20, "Number of users per page")
+	listUsersCmd.Flags().IntP("limit", "l", 20, "Maximum number of users to display (auto-fetches pages when using client-side filters)")
+	listUsersCmd.Flags().IntP("page", "p", 1, "Page number (ignored when using client-side filters like --online)")
+	listUsersCmd.Flags().Int("per-page", 100, "Number of users to fetch per API request")
 	listUsersCmd.Flags().Int("campus-id", 0, "Filter by campus ID")
 	listUsersCmd.Flags().String("campus", "", "Filter by campus name (e.g., 'tokyo', 'paris')")
 	listUsersCmd.Flags().Int("cursus-id", 0, "Filter by cursus ID (default: 21 for 42cursus)")
@@ -105,6 +114,7 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	// Get flags
+	limit, _ := cmd.Flags().GetInt("limit")
 	page, _ := cmd.Flags().GetInt("page")
 	perPage, _ := cmd.Flags().GetInt("per-page")
 	campusID, _ := cmd.Flags().GetInt("campus-id")
@@ -123,6 +133,9 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 	maxLevel, _ := cmd.Flags().GetFloat64("max-level")
 	online, _ := cmd.Flags().GetBool("online")
 
+	// Track resolved campus for embedding into cursus_users results
+	var resolvedCampus *api.Campus
+
 	// Resolve campus name to campus ID if provided
 	if campusName != "" {
 		campuses, err := client.ListCampuses(ctx)
@@ -131,10 +144,11 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 		}
 
 		campusNameLower := strings.ToLower(campusName)
-		for _, campus := range campuses {
-			if strings.ToLower(campus.Name) == campusNameLower ||
-				strings.ToLower(campus.City) == campusNameLower {
-				campusID = campus.ID
+		for i := range campuses {
+			if strings.ToLower(campuses[i].Name) == campusNameLower ||
+				strings.ToLower(campuses[i].City) == campusNameLower {
+				campusID = campuses[i].ID
+				resolvedCampus = &campuses[i]
 				break
 			}
 		}
@@ -158,6 +172,19 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 			}
 			return fmt.Errorf("campus %q not found. Available campuses: %s",
 				campusName, strings.Join(campusOptions, ", "))
+		}
+	}
+
+	// If campus-id was specified directly (without --campus), resolve the campus info
+	if campusID > 0 && resolvedCampus == nil {
+		campuses, err := client.ListCampuses(ctx)
+		if err == nil {
+			for i := range campuses {
+				if campuses[i].ID == campusID {
+					resolvedCampus = &campuses[i]
+					break
+				}
+			}
 		}
 	}
 
@@ -207,48 +234,8 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 		opts.FilterStaff = &trueVal
 	}
 
-	// List users - use cursus_users endpoint when cursus filtering is needed for full data
-	var users []api.User
-	var meta *api.PaginationMeta
-
-	// Use ListCursusUsers when cursusID is specified.
-	// This endpoint provides full cursus data (level, blackhole, grade) needed for:
-	// - Level filtering (--min-level, --max-level)
-	// - Blackhole status filtering (--blackhole-status)
-	// Without cursusID, we fall back to basic user endpoints where these filters
-	// have limited effect since cursus data may be incomplete.
-	if cursusID > 0 {
-		// Use cursus_users endpoint for full data (level, blackhole, etc.)
-		cursusOpts := &api.ListCursusUsersOptions{
-			Page:         page,
-			PerPage:      perPage,
-			CampusID:     campusID,
-			Sort:         sort,
-			FilterActive: opts.FilterActive,
-			MinLevel:     minLevel, // Server-side level range filtering
-			MaxLevel:     maxLevel,
-		}
-
-		cursusUsers, cursusMeta, err := client.ListCursusUsers(ctx, cursusID, cursusOpts)
-		if err != nil {
-			return fmt.Errorf("failed to list cursus users: %w", err)
-		}
-
-		// Convert CursusUser to User for filtering and display
-		users = convertCursusUsersToUsers(cursusUsers, cursusID)
-		meta = cursusMeta
-	} else if campusID > 0 {
-		users, meta, err = client.ListCampusUsers(ctx, campusID, opts)
-	} else {
-		users, meta, err = client.ListUsers(ctx, opts)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to list users: %w", err)
-	}
-
-	// Apply client-side filters
-	filteredUsers := filterUsers(users, filterCriteria{
+	// Build filter criteria
+	criteria := filterCriteria{
 		minProjects:     minProjects,
 		blackholeStatus: blackholeStatus,
 		blackholeDays:   blackholeDays,
@@ -256,16 +243,134 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 		minLevel:        minLevel,
 		maxLevel:        maxLevel,
 		online:          online,
-	})
+	}
+
+	// List users - use cursus_users endpoint when cursus filtering is needed for full data
+	var filteredUsers []api.User
+	var meta *api.PaginationMeta
+	var totalFetched int
+
+	// Use ListCursusUsers when cursusID is specified.
+	// This endpoint provides full cursus data (level, blackhole, grade) needed for:
+	// - Level filtering (--min-level, --max-level)
+	// - Blackhole status filtering (--blackhole-status)
+	// Without cursusID, we fall back to basic user endpoints where these filters
+	// have limited effect since cursus data may be incomplete.
+
+	if criteria.hasClientSideFilters() {
+		// Progressive fetch: keep fetching pages until we have enough filtered results
+		currentPage := 1
+		for len(filteredUsers) < limit {
+			var users []api.User
+			var pageMeta *api.PaginationMeta
+
+			if cursusID > 0 {
+				cursusOpts := &api.ListCursusUsersOptions{
+					Page:         currentPage,
+					PerPage:      perPage,
+					CampusID:     campusID,
+					Sort:         sort,
+					FilterActive: opts.FilterActive,
+					MinLevel:     minLevel,
+					MaxLevel:     maxLevel,
+				}
+				cursusUsers, cursusMeta, fetchErr := client.ListCursusUsers(ctx, cursusID, cursusOpts)
+				if fetchErr != nil {
+					return fmt.Errorf("failed to list cursus users: %w", fetchErr)
+				}
+				users = convertCursusUsersToUsers(cursusUsers, cursusID, resolvedCampus)
+				pageMeta = cursusMeta
+			} else if campusID > 0 {
+				opts.Page = currentPage
+				opts.PerPage = perPage
+				var fetchErr error
+				users, pageMeta, fetchErr = client.ListCampusUsers(ctx, campusID, opts)
+				if fetchErr != nil {
+					return fmt.Errorf("failed to list users: %w", fetchErr)
+				}
+			} else {
+				opts.Page = currentPage
+				opts.PerPage = perPage
+				var fetchErr error
+				users, pageMeta, fetchErr = client.ListUsers(ctx, opts)
+				if fetchErr != nil {
+					return fmt.Errorf("failed to list users: %w", fetchErr)
+				}
+			}
+
+			totalFetched += len(users)
+			meta = pageMeta
+
+			// Apply client-side filters
+			filtered := filterUsers(users, criteria)
+			filteredUsers = append(filteredUsers, filtered...)
+
+			// Stop if no more pages
+			if len(users) < perPage || (meta != nil && currentPage >= meta.TotalPages) {
+				break
+			}
+			currentPage++
+		}
+
+		// Trim to limit
+		if len(filteredUsers) > limit {
+			filteredUsers = filteredUsers[:limit]
+		}
+	} else {
+		// Single page fetch (no client-side filters)
+		var users []api.User
+
+		if cursusID > 0 {
+			cursusOpts := &api.ListCursusUsersOptions{
+				Page:         page,
+				PerPage:      perPage,
+				CampusID:     campusID,
+				Sort:         sort,
+				FilterActive: opts.FilterActive,
+				MinLevel:     minLevel,
+				MaxLevel:     maxLevel,
+			}
+			cursusUsers, cursusMeta, fetchErr := client.ListCursusUsers(ctx, cursusID, cursusOpts)
+			if fetchErr != nil {
+				return fmt.Errorf("failed to list cursus users: %w", fetchErr)
+			}
+			users = convertCursusUsersToUsers(cursusUsers, cursusID, resolvedCampus)
+			meta = cursusMeta
+		} else if campusID > 0 {
+			var fetchErr error
+			users, meta, fetchErr = client.ListCampusUsers(ctx, campusID, opts)
+			if fetchErr != nil {
+				return fmt.Errorf("failed to list users: %w", fetchErr)
+			}
+		} else {
+			var fetchErr error
+			users, meta, fetchErr = client.ListUsers(ctx, opts)
+			if fetchErr != nil {
+				return fmt.Errorf("failed to list users: %w", fetchErr)
+			}
+		}
+
+		totalFetched = len(users)
+		filteredUsers = filterUsers(users, criteria)
+	}
 
 	if GetJSONOutput() {
+		filterInfo := map[string]interface{}{
+			"filtered_count": len(filteredUsers),
+			"total_fetched":  totalFetched,
+			"limit":          limit,
+		}
+		if criteria.hasClientSideFilters() {
+			filterInfo["mode"] = "progressive_fetch"
+			filterInfo["note"] = "Progressive fetch used: fetched multiple pages until limit reached"
+		} else {
+			filterInfo["mode"] = "single_page"
+			filterInfo["note"] = "meta reflects server-side pagination"
+		}
 		output := map[string]interface{}{
-			"users": filteredUsers,
-			"meta":  meta,
-			"filter_info": map[string]interface{}{
-				"filtered_count": len(filteredUsers),
-				"note":           "meta reflects server-side pagination; filtered_count shows results after client-side filtering",
-			},
+			"users":       filteredUsers,
+			"meta":        meta,
+			"filter_info": filterInfo,
 		}
 		jsonData, err := json.MarshalIndent(output, "", "  ")
 		if err != nil {
@@ -273,7 +378,9 @@ func runListUsers(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Println(string(jsonData))
 	} else {
-		printUsersTable(filteredUsers, meta, cursusID)
+		// Don't show PROJECTS column when using cursus_users endpoint (no project data available)
+		showProjects := cursusID == 0
+		printUsersTableWithMode(filteredUsers, meta, cursusID, showProjects, criteria.hasClientSideFilters(), totalFetched, limit)
 	}
 
 	return nil
@@ -319,13 +426,26 @@ type filterCriteria struct {
 	online          bool
 }
 
+// hasClientSideFilters returns true if any client-side filters are active
+// These filters require progressive fetching since the API doesn't support them
+func (c filterCriteria) hasClientSideFilters() bool {
+	return c.online || c.minProjects > 0 || c.blackholeStatus != ""
+}
+
 // convertCursusUsersToUsers converts CursusUser objects to User objects for unified filtering and display
 // This is needed because ListCursusUsers returns CursusUser with nested User, while other endpoints return User directly
-func convertCursusUsersToUsers(cursusUsers []api.CursusUser, cursusID int) []api.User {
+// The campus parameter is used to embed campus info (cursus_users endpoint doesn't include it in the nested user)
+func convertCursusUsersToUsers(cursusUsers []api.CursusUser, cursusID int, campus *api.Campus) []api.User {
 	users := make([]api.User, 0, len(cursusUsers))
 
 	for _, cu := range cursusUsers {
 		user := cu.User
+
+		// Embed campus info if provided (cursus_users endpoint doesn't include campus in nested user)
+		if campus != nil && len(user.Campus) == 0 {
+			user.Campus = []api.Campus{*campus}
+		}
+
 		// Ensure Cursus.ID is set - the API might not populate it when querying by cursus ID
 		cursus := cu.Cursus
 		if cursus.ID == 0 {
@@ -464,16 +584,22 @@ func validateAlumniFlagCompatibility(alumni, nonAlumni bool, cursusID int) error
 	return nil
 }
 
-func printUsersTable(users []api.User, meta *api.PaginationMeta, cursusID int) {
+func printUsersTableWithMode(users []api.User, meta *api.PaginationMeta, cursusID int, showProjects bool, progressiveMode bool, totalFetched int, limit int) {
 	if len(users) == 0 {
 		fmt.Println("No users found.")
 		return
 	}
 
-	// Header
-	fmt.Printf("%-20s %-30s %-15s %-10s %-10s %s\n",
-		"LOGIN", "NAME", "CAMPUS", "LEVEL", "PROJECTS", "BLACKHOLE")
-	fmt.Printf("%s\n", strings.Repeat("-", 110))
+	// Header - adjust columns based on whether projects data is available
+	if showProjects {
+		fmt.Printf("%-20s %-30s %-15s %-10s %-10s %s\n",
+			"LOGIN", "NAME", "CAMPUS", "LEVEL", "PROJECTS", "BLACKHOLE")
+		fmt.Printf("%s\n", strings.Repeat("-", 110))
+	} else {
+		fmt.Printf("%-20s %-30s %-15s %-10s %s\n",
+			"LOGIN", "NAME", "CAMPUS", "LEVEL", "BLACKHOLE")
+		fmt.Printf("%s\n", strings.Repeat("-", 90))
+	}
 
 	// Users
 	for _, user := range users {
@@ -505,14 +631,23 @@ func printUsersTable(users []api.User, meta *api.PaginationMeta, cursusID int) {
 			}
 		}
 
-		projectCount := strconv.Itoa(countCompletedProjects(user.ProjectsUsers))
-
-		fmt.Printf("%-20s %-30s %-15s %-10s %-10s %s\n",
-			login, displayName, campus, level, projectCount, blackhole)
+		if showProjects {
+			projectCount := strconv.Itoa(countCompletedProjects(user.ProjectsUsers))
+			fmt.Printf("%-20s %-30s %-15s %-10s %-10s %s\n",
+				login, displayName, campus, level, projectCount, blackhole)
+		} else {
+			fmt.Printf("%-20s %-30s %-15s %-10s %s\n",
+				login, displayName, campus, level, blackhole)
+		}
 	}
 
-	// Pagination info
-	if meta != nil {
+	// Pagination/fetch info
+	if progressiveMode {
+		fmt.Printf("\n📊 Showing %d users (fetched %d, filtered by client-side criteria)\n", len(users), totalFetched)
+		if len(users) >= limit && meta != nil && meta.TotalCount > totalFetched {
+			fmt.Printf("   Use --limit %d to see more results\n", limit*2)
+		}
+	} else if meta != nil {
 		fmt.Printf("\n📄 Page %d of %d (%d total users, showing %d)\n",
 			meta.Page, meta.TotalPages, meta.TotalCount, len(users))
 		if meta.Page < meta.TotalPages {

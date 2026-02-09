@@ -495,6 +495,11 @@ func (c *Client) extractPaginationMeta(resp *http.Response, count int) *Paginati
 		}
 	}
 
+	// Calculate TotalPages if not provided by header but we have enough info
+	if meta.TotalPages == 0 && meta.TotalCount > 0 && meta.PerPage > 0 {
+		meta.TotalPages = (meta.TotalCount + meta.PerPage - 1) / meta.PerPage
+	}
+
 	return meta
 }
 
