@@ -55,3 +55,4 @@ credentials.json
 
 # Claude Code auto-memory
 .claude/auto-memory/dirty-files
+Fast42-ts/
