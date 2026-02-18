@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/naokiiida/t42-cli/internal/api"
-	"github.com/naokiiida/t42-cli/internal/config"
 )
 
 var eligibleCmd = &cobra.Command{
@@ -261,13 +260,9 @@ func runEligible(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Getting session detail for session %d (using app credentials)\n", sessionID)
 	}
 
-	secrets, err := config.LoadDevelopmentSecrets()
+	secrets, err := getOAuth2Config()
 	if err != nil {
-		// Try config dir secrets as fallback
-		secrets, err = config.LoadSecretsFromConfigDir()
-		if err != nil {
-			return fmt.Errorf("failed to load app credentials (needed for session rules): %w", err)
-		}
+		return fmt.Errorf("failed to load app credentials (needed for session rules): %w", err)
 	}
 
 	appToken, err := api.GetClientCredentialsToken(ctx, secrets.ClientID, secrets.ClientSecret)
