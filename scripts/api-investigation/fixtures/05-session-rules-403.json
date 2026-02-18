@@ -1,0 +1,7 @@
+{
+  "status": 403,
+  "data": {
+    "error": "Access Denied",
+    "message": "You are not authorized to access this page."
+  }
+}

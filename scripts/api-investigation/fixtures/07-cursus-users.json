@@ -1,0 +1,982 @@
+[
+  {
+    "id": 298126,
+    "begin_at": "2024-10-21T09:00:00.000Z",
+    "end_at": null,
+    "grade": "Transcender",
+    "level": 9.97,
+    "skills": [
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.22
+      },
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 6.87
+      },
+      {
+        "id": 6,
+        "name": "Web",
+        "level": 6.03
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.42
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 4.96
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.27
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 4.05
+      },
+      {
+        "id": 7,
+        "name": "Group & interpersonal",
+        "level": 3.7
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 2.9699999999999998
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": null,
+    "created_at": "2024-10-17T13:07:41.846Z",
+    "updated_at": "2024-10-17T13:07:41.846Z",
+    "user": {
+      "id": 200371,
+      "email": "hnagashi@student.42tokyo.jp",
+      "login": "hnagashi",
+      "first_name": "Hiroki",
+      "last_name": "Nagashima",
+      "usual_full_name": "Hiroki Nagashima",
+      "usual_first_name": "Hiroki",
+      "url": "https://api.intra.42.fr/v2/users/hnagashi",
+      "phone": "hidden",
+      "displayname": "Hiroki Nagashima",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/66adfab83772ac7807a92821363b43a9/hnagashi.jpg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/39591e9447da86f0562ae92ed0b33894/large_hnagashi.jpg",
+          "medium": "https://cdn.intra.42.fr/users/4eb8cc49629e38abe034fa67eff7c328/medium_hnagashi.jpg",
+          "small": "https://cdn.intra.42.fr/users/89927c2a27846ee0c68c6a4c872495ab/small_hnagashi.jpg",
+          "micro": "https://cdn.intra.42.fr/users/ff6789878a20ae87c2c6d87b91381cd0/micro_hnagashi.jpg"
+        }
+      },
+      "staff?": false,
+      "correction_point": 11,
+      "pool_month": "september",
+      "pool_year": "2024",
+      "location": null,
+      "wallet": 260,
+      "anonymize_date": "2029-02-02T00:00:00.000+09:00",
+      "data_erasure_date": "2029-02-02T00:00:00.000+09:00",
+      "created_at": "2024-08-23T06:13:43.214Z",
+      "updated_at": "2026-01-13T12:02:29.146Z",
+      "alumnized_at": null,
+      "alumni?": false,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  },
+  {
+    "id": 151057,
+    "begin_at": "2022-04-05T04:00:00.000Z",
+    "end_at": null,
+    "grade": "Transcender",
+    "level": 9.82,
+    "skills": [
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.28
+      },
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 6.62
+      },
+      {
+        "id": 6,
+        "name": "Web",
+        "level": 6.33
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.29
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 4.8
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.19
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 4.04
+      },
+      {
+        "id": 7,
+        "name": "Group & interpersonal",
+        "level": 3.89
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 2.76
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": null,
+    "created_at": "2021-12-24T07:52:20.557Z",
+    "updated_at": "2021-12-24T07:52:20.557Z",
+    "user": {
+      "id": 101942,
+      "email": "noshiro@student.42tokyo.jp",
+      "login": "noshiro",
+      "first_name": "Nonoka",
+      "last_name": "Oshiro",
+      "usual_full_name": "Nonoka Oshiro",
+      "usual_first_name": "Nonoka",
+      "url": "https://api.intra.42.fr/v2/users/noshiro",
+      "phone": "hidden",
+      "displayname": "Nonoka Oshiro",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/dd54b9e84022056f0161c61750d491e7/noshiro.jpg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/d1f5a8914cb6e841bc40c0c6ba0068ae/large_noshiro.jpg",
+          "medium": "https://cdn.intra.42.fr/users/44c3a88217372aca8add4d35a4f6de01/medium_noshiro.jpg",
+          "small": "https://cdn.intra.42.fr/users/5b3c4e9f0ca700617765eb8f21b790c9/small_noshiro.jpg",
+          "micro": "https://cdn.intra.42.fr/users/33991e901f07ab6478fc1628f1367810/micro_noshiro.jpg"
+        }
+      },
+      "staff?": false,
+      "correction_point": 0,
+      "pool_month": "november",
+      "pool_year": "2021",
+      "location": null,
+      "wallet": 134,
+      "anonymize_date": "2029-01-19T00:00:00.000+09:00",
+      "data_erasure_date": "2029-01-19T00:00:00.000+09:00",
+      "created_at": "2021-11-09T04:33:52.166Z",
+      "updated_at": "2026-01-18T23:25:20.178Z",
+      "alumnized_at": null,
+      "alumni?": false,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  },
+  {
+    "id": 236548,
+    "begin_at": "2023-09-19T09:00:00.000Z",
+    "end_at": null,
+    "grade": "Cadet",
+    "level": 9.8,
+    "skills": [
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.15
+      },
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 6.62
+      },
+      {
+        "id": 6,
+        "name": "Web",
+        "level": 6.28
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.34
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 4.84
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.2
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 4.08
+      },
+      {
+        "id": 7,
+        "name": "Group & interpersonal",
+        "level": 3.86
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 2.65
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": "2026-03-03T09:00:00.000Z",
+    "created_at": "2023-09-08T09:29:52.418Z",
+    "updated_at": "2023-09-08T09:29:52.418Z",
+    "user": {
+      "id": 160690,
+      "email": "kishizu@student.42tokyo.jp",
+      "login": "kishizu",
+      "first_name": "Kohya",
+      "last_name": "Ishizu",
+      "usual_full_name": "Kohya Ishizu",
+      "usual_first_name": "Kohya",
+      "url": "https://api.intra.42.fr/v2/users/kishizu",
+      "phone": "hidden",
+      "displayname": "Kohya Ishizu",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/d8e93a1b07085b32f8b7056e889cd376/kishizu.jpg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/749dea511d0362930c920e6adb3826d3/large_kishizu.jpg",
+          "medium": "https://cdn.intra.42.fr/users/fe1a6df3a2680ba25cbc6c0f5d926058/medium_kishizu.jpg",
+          "small": "https://cdn.intra.42.fr/users/53b41181b2fafc6d0579dacf29443ef4/small_kishizu.jpg",
+          "micro": "https://cdn.intra.42.fr/users/fe845752338cf9037505e5ac01157b19/micro_kishizu.jpg"
+        }
+      },
+      "staff?": false,
+      "correction_point": -1,
+      "pool_month": "august",
+      "pool_year": "2023",
+      "location": null,
+      "wallet": 235,
+      "anonymize_date": "2029-02-18T00:00:00.000+09:00",
+      "data_erasure_date": "2029-02-18T00:00:00.000+09:00",
+      "created_at": "2023-08-05T04:06:26.637Z",
+      "updated_at": "2026-02-16T12:41:09.813Z",
+      "alumnized_at": null,
+      "alumni?": false,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  },
+  {
+    "id": 101786,
+    "begin_at": "2020-10-05T02:00:00.000Z",
+    "end_at": null,
+    "grade": "Alumni",
+    "level": 9.77,
+    "skills": [
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.31
+      },
+      {
+        "id": 6,
+        "name": "Web",
+        "level": 6.4
+      },
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 6.33
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.82
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 4.64
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.23
+      },
+      {
+        "id": 7,
+        "name": "Group & interpersonal",
+        "level": 3.93
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 3.5300000000000002
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 2.24
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": null,
+    "created_at": "2020-09-18T03:45:34.826Z",
+    "updated_at": "2020-09-18T03:45:34.826Z",
+    "user": {
+      "id": 76694,
+      "email": "dnakano@student.42tokyo.jp",
+      "login": "dnakano",
+      "first_name": "Daiki",
+      "last_name": "Nakano",
+      "usual_full_name": "Daiki Nakano",
+      "usual_first_name": "Daiki",
+      "url": "https://api.intra.42.fr/v2/users/dnakano",
+      "phone": "hidden",
+      "displayname": "Daiki Nakano",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/b54dda40f061edeebab773e8240ae4aa/dnakano.jpg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/ab0d0f25334c77754a5b63817cdd3fe2/large_dnakano.jpg",
+          "medium": "https://cdn.intra.42.fr/users/5bcb0fc5037b1c7b94e87835a320bd79/medium_dnakano.jpg",
+          "small": "https://cdn.intra.42.fr/users/6e8ee8d3bd09f69fc8791b573f76164b/small_dnakano.jpg",
+          "micro": "https://cdn.intra.42.fr/users/005c22d5d577d9896ec800ebde0f8f94/micro_dnakano.jpg"
+        }
+      },
+      "staff?": false,
+      "correction_point": 1,
+      "pool_month": "august",
+      "pool_year": "2020",
+      "location": null,
+      "wallet": 635,
+      "anonymize_date": null,
+      "data_erasure_date": null,
+      "created_at": "2020-08-03T07:36:24.406Z",
+      "updated_at": "2026-02-04T21:23:30.499Z",
+      "alumnized_at": "2025-01-09T15:00:16.235Z",
+      "alumni?": true,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  },
+  {
+    "id": 216141,
+    "begin_at": "2023-05-16T04:00:00.000Z",
+    "end_at": null,
+    "grade": "Alumni",
+    "level": 9.77,
+    "skills": [
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.3
+      },
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 6.67
+      },
+      {
+        "id": 6,
+        "name": "Web",
+        "level": 6.1
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.36
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 4.83
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.23
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 4.04
+      },
+      {
+        "id": 7,
+        "name": "Group & interpersonal",
+        "level": 3.74
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 2.71
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": null,
+    "created_at": "2023-05-01T09:59:40.802Z",
+    "updated_at": "2023-05-01T09:59:40.802Z",
+    "user": {
+      "id": 148806,
+      "email": "khorike@student.42tokyo.jp",
+      "login": "khorike",
+      "first_name": "Kaisyu",
+      "last_name": "Horike",
+      "usual_full_name": "Kaisyu Horike",
+      "usual_first_name": "Kaisyu",
+      "url": "https://api.intra.42.fr/v2/users/khorike",
+      "phone": "hidden",
+      "displayname": "Kaisyu Horike",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/e22b0fa384753ec2f5c607b44b4d0e93/khorike.jpg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/c0b16225bf0ffbbeb73ba719781e0f17/large_khorike.jpg",
+          "medium": "https://cdn.intra.42.fr/users/dc3e81fb9afcdb27ebb225f4a6528768/medium_khorike.jpg",
+          "small": "https://cdn.intra.42.fr/users/d0186036e1765857327080af181e682c/small_khorike.jpg",
+          "micro": "https://cdn.intra.42.fr/users/c20a082110e4141d5d9e7cfd8138393e/micro_khorike.jpg"
+        }
+      },
+      "staff?": false,
+      "correction_point": 14,
+      "pool_month": "april",
+      "pool_year": "2023",
+      "location": null,
+      "wallet": 900,
+      "anonymize_date": null,
+      "data_erasure_date": null,
+      "created_at": "2023-04-01T03:50:02.958Z",
+      "updated_at": "2025-10-23T13:01:33.847Z",
+      "alumnized_at": "2025-01-09T15:02:22.201Z",
+      "alumni?": true,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  },
+  {
+    "id": 216155,
+    "begin_at": "2023-05-16T04:00:00.000Z",
+    "end_at": null,
+    "grade": "Alumni",
+    "level": 9.6,
+    "skills": [
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.03
+      },
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 6.68
+      },
+      {
+        "id": 6,
+        "name": "Web",
+        "level": 6.1
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.18
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 4.79
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.23
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 4.16
+      },
+      {
+        "id": 7,
+        "name": "Group & interpersonal",
+        "level": 3.74
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 2.69
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": null,
+    "created_at": "2023-05-01T12:07:57.766Z",
+    "updated_at": "2023-05-01T12:07:57.766Z",
+    "user": {
+      "id": 148820,
+      "email": "shunito@student.42tokyo.jp",
+      "login": "shunito",
+      "first_name": "Shun",
+      "last_name": "Ito",
+      "usual_full_name": "Shun Ito",
+      "usual_first_name": "Shun",
+      "url": "https://api.intra.42.fr/v2/users/shunito",
+      "phone": "hidden",
+      "displayname": "Shun Ito",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/896e1da94fac10057ab32e912ad27ec4/shunito.jpg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/2399a5abafe3afaff85c8f8f2dbc99be/large_shunito.jpg",
+          "medium": "https://cdn.intra.42.fr/users/645375d0cab5510cbaadd6ca642c7e72/medium_shunito.jpg",
+          "small": "https://cdn.intra.42.fr/users/0f3ceab2cc965f3b7501d806ba9bc120/small_shunito.jpg",
+          "micro": "https://cdn.intra.42.fr/users/3220d026d55ddc3125dec5f44a8ebe34/micro_shunito.jpg"
+        }
+      },
+      "staff?": false,
+      "correction_point": 5,
+      "pool_month": "april",
+      "pool_year": "2023",
+      "location": null,
+      "wallet": 635,
+      "anonymize_date": null,
+      "data_erasure_date": null,
+      "created_at": "2023-04-01T06:26:28.977Z",
+      "updated_at": "2025-05-01T12:43:10.110Z",
+      "alumnized_at": "2025-01-09T15:02:13.922Z",
+      "alumni?": true,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  },
+  {
+    "id": 101841,
+    "begin_at": "2020-10-05T02:00:00.000Z",
+    "end_at": null,
+    "grade": "Alumni",
+    "level": 9.35,
+    "skills": [
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.03
+      },
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 6.33
+      },
+      {
+        "id": 6,
+        "name": "Web",
+        "level": 6.28
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.82
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 4.52
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.01
+      },
+      {
+        "id": 7,
+        "name": "Group & interpersonal",
+        "level": 3.86
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 3.2
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 2.7800000000000002
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": null,
+    "created_at": "2020-09-18T05:12:49.229Z",
+    "updated_at": "2020-09-18T05:12:49.229Z",
+    "user": {
+      "id": 72158,
+      "email": "dhasegaw@student.42tokyo.jp",
+      "login": "dhasegaw",
+      "first_name": "Daisuke",
+      "last_name": "Hasegawa",
+      "usual_full_name": "Daisuke Hasegawa",
+      "usual_first_name": "Daisuke",
+      "url": "https://api.intra.42.fr/v2/users/dhasegaw",
+      "phone": "hidden",
+      "displayname": "Daisuke Hasegawa",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/f9f3abd577ce2ebfa65091690eebdf91/dhasegaw.jpg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/23a39d6fbbfa265663d88cf80b6b8287/large_dhasegaw.jpg",
+          "medium": "https://cdn.intra.42.fr/users/db2a224c1cd51321f18a6dc7f2421075/medium_dhasegaw.jpg",
+          "small": "https://cdn.intra.42.fr/users/d3c3f9a109d4729c5b53abb5d3cc3214/small_dhasegaw.jpg",
+          "micro": "https://cdn.intra.42.fr/users/b3a02728a107f7e86d85dbe472964789/micro_dhasegaw.jpg"
+        }
+      },
+      "staff?": false,
+      "correction_point": 2,
+      "pool_month": "august",
+      "pool_year": "2020",
+      "location": null,
+      "wallet": 475,
+      "anonymize_date": null,
+      "data_erasure_date": null,
+      "created_at": "2020-02-15T04:06:32.437Z",
+      "updated_at": "2025-09-09T05:39:38.981Z",
+      "alumnized_at": "2025-01-09T15:02:09.346Z",
+      "alumni?": true,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  },
+  {
+    "id": 236571,
+    "begin_at": "2023-09-19T09:00:00.000Z",
+    "end_at": null,
+    "grade": "Cadet",
+    "level": 8.89,
+    "skills": [
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 8.05
+      },
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.31
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.73
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 4.98
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.45
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 4.17
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 2.98
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": "2026-03-13T09:00:00.000Z",
+    "created_at": "2023-09-08T10:28:26.939Z",
+    "updated_at": "2023-09-08T10:28:26.939Z",
+    "user": {
+      "id": 160760,
+      "email": "masho@student.42tokyo.jp",
+      "login": "masho",
+      "first_name": "Matsushima",
+      "last_name": "Sho",
+      "usual_full_name": "Matsushima Sho",
+      "usual_first_name": "Matsushima",
+      "url": "https://api.intra.42.fr/v2/users/masho",
+      "phone": "hidden",
+      "displayname": "Matsushima Sho",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/a98bb42246d0d6b2370af1df09d1318e/masho.jpg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/ca4bcb89352b8834fda9ca321e883ac0/large_masho.jpg",
+          "medium": "https://cdn.intra.42.fr/users/24287c57a87da054cd9d150d87467db6/medium_masho.jpg",
+          "small": "https://cdn.intra.42.fr/users/78f60b81c19a6218a4379fc7bbc87ed3/small_masho.jpg",
+          "micro": "https://cdn.intra.42.fr/users/e36b18acf9e303017be34ca5ea066382/micro_masho.jpg"
+        }
+      },
+      "staff?": false,
+      "correction_point": -5,
+      "pool_month": "august",
+      "pool_year": "2023",
+      "location": null,
+      "wallet": 195,
+      "anonymize_date": "2029-02-15T00:00:00.000+09:00",
+      "data_erasure_date": "2029-02-15T00:00:00.000+09:00",
+      "created_at": "2023-08-05T07:06:04.393Z",
+      "updated_at": "2026-02-12T09:00:16.837Z",
+      "alumnized_at": null,
+      "alumni?": false,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  },
+  {
+    "id": 200062,
+    "begin_at": "2023-01-10T01:00:00.000Z",
+    "end_at": null,
+    "grade": "Cadet",
+    "level": 8.88,
+    "skills": [
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 8.69
+      },
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.34
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.58
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 4.93
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.28
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 4.03
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 3.14
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": "2026-04-22T01:00:00.000Z",
+    "created_at": "2022-12-29T10:50:53.909Z",
+    "updated_at": "2022-12-29T10:50:53.909Z",
+    "user": {
+      "id": 140557,
+      "email": "kamitsui@student.42tokyo.jp",
+      "login": "kamitsui",
+      "first_name": "Kaishiro",
+      "last_name": "Mitsui",
+      "usual_full_name": "Kaishiro Mitsui",
+      "usual_first_name": "Kaishiro",
+      "url": "https://api.intra.42.fr/v2/users/kamitsui",
+      "phone": "hidden",
+      "displayname": "Kaishiro Mitsui",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/9fe3ae84a2b4171ee0951f59e6c0a337/kamitsui.jpeg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/bb2e2bfa3be9af4296e461593191c7ea/large_kamitsui.jpeg",
+          "medium": "https://cdn.intra.42.fr/users/d79129df5cce7e898bcc848e916a05b3/medium_kamitsui.jpeg",
+          "small": "https://cdn.intra.42.fr/users/1aa153dec802e69fbfc8ca3c830f036d/small_kamitsui.jpeg",
+          "micro": "https://cdn.intra.42.fr/users/6f5dc99b61dfdf2096d64c5f90ea2e52/micro_kamitsui.jpeg"
+        }
+      },
+      "staff?": false,
+      "correction_point": 36,
+      "pool_month": "december",
+      "pool_year": "2022",
+      "location": null,
+      "wallet": 1076,
+      "anonymize_date": "2029-02-18T00:00:00.000+09:00",
+      "data_erasure_date": "2029-02-18T00:00:00.000+09:00",
+      "created_at": "2022-11-25T05:48:27.970Z",
+      "updated_at": "2026-02-17T12:14:11.149Z",
+      "alumnized_at": null,
+      "alumni?": false,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  },
+  {
+    "id": 236515,
+    "begin_at": "2023-09-19T09:00:00.000Z",
+    "end_at": null,
+    "grade": "Cadet",
+    "level": 8.83,
+    "skills": [
+      {
+        "id": 10,
+        "name": "Network & system administration",
+        "level": 7.95
+      },
+      {
+        "id": 3,
+        "name": "Rigor",
+        "level": 7.24
+      },
+      {
+        "id": 17,
+        "name": "Object-oriented programming",
+        "level": 5.62
+      },
+      {
+        "id": 2,
+        "name": "Imperative programming",
+        "level": 5.11
+      },
+      {
+        "id": 4,
+        "name": "Unix",
+        "level": 4.34
+      },
+      {
+        "id": 1,
+        "name": "Algorithms & AI",
+        "level": 4.25
+      },
+      {
+        "id": 5,
+        "name": "Graphics",
+        "level": 2.89
+      }
+    ],
+    "cursus_id": 21,
+    "has_coalition": true,
+    "blackholed_at": "2026-04-14T09:00:00.000Z",
+    "created_at": "2023-09-08T09:07:40.708Z",
+    "updated_at": "2023-09-08T09:07:40.708Z",
+    "user": {
+      "id": 160697,
+      "email": "yliu@student.42tokyo.jp",
+      "login": "yliu",
+      "first_name": "Yuyang",
+      "last_name": "Liu",
+      "usual_full_name": "Yuyang Liu",
+      "usual_first_name": "Yuyang",
+      "url": "https://api.intra.42.fr/v2/users/yliu",
+      "phone": "hidden",
+      "displayname": "Yuyang Liu",
+      "kind": "student",
+      "image": {
+        "link": "https://cdn.intra.42.fr/users/a659d4a2a504cc7fa797960d03af2138/yliu.jpg",
+        "versions": {
+          "large": "https://cdn.intra.42.fr/users/162abc9ae2c1de12800670e082f9e512/large_yliu.jpg",
+          "medium": "https://cdn.intra.42.fr/users/761f4abb7ab7c838d3aae770b4dc43dd/medium_yliu.jpg",
+          "small": "https://cdn.intra.42.fr/users/418ea04e06ef681d9beb2b0897ded655/small_yliu.jpg",
+          "micro": "https://cdn.intra.42.fr/users/b9d2ca0e2b3c8471d02e4d731b2caad4/micro_yliu.jpg"
+        }
+      },
+      "staff?": false,
+      "correction_point": 11,
+      "pool_month": "august",
+      "pool_year": "2023",
+      "location": null,
+      "wallet": 1230,
+      "anonymize_date": "2029-02-17T00:00:00.000+09:00",
+      "data_erasure_date": "2029-02-17T00:00:00.000+09:00",
+      "created_at": "2023-08-05T04:14:20.145Z",
+      "updated_at": "2026-02-12T08:08:06.893Z",
+      "alumnized_at": null,
+      "alumni?": false,
+      "active?": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    }
+  }
+]

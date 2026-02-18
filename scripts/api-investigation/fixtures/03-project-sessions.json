@@ -1,0 +1,488 @@
+[
+  {
+    "id": 5241,
+    "solo": false,
+    "begin_at": null,
+    "end_at": null,
+    "estimate_time": "245 hours",
+    "difficulty": 24360,
+    "objectives": [
+      "Group",
+      "Creativity",
+      "Framework"
+    ],
+    "description": "Design, develop, and organize a full-stack web application with complete creative freedom. Choose your project concept, select from a wide range of technical modules, and make key architectural decisions. This highly flexible project allows you to explore modern web development while demonstrating your technical skills and creativity through a modular approach.",
+    "duration_days": null,
+    "terminating_after": null,
+    "project_id": 1337,
+    "campus_id": 26,
+    "cursus_id": 21,
+    "created_at": "2020-12-17T11:28:06.474Z",
+    "updated_at": "2026-02-06T03:46:22.961Z",
+    "max_people": null,
+    "is_subscriptable": true,
+    "scales": [
+      {
+        "id": 58673,
+        "correction_number": 3,
+        "is_primary": true
+      },
+      {
+        "id": 56118,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 55296,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 51988,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 48842,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 47331,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 45813,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 38717,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 43468,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 34451,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 30626,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 27585,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 26002,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 23212,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 20735,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 19236,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 16227,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 13314,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 7213,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 10693,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 6670,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 4443,
+        "correction_number": 3,
+        "is_primary": false
+      },
+      {
+        "id": 4383,
+        "correction_number": 3,
+        "is_primary": false
+      }
+    ],
+    "uploads": [],
+    "team_behaviour": "user",
+    "commit": "66b2017addc78f81078236c86c5eae4d98f1c9d4",
+    "project": {
+      "id": 1337,
+      "name": "ft_transcendence",
+      "slug": "ft_transcendence",
+      "difficulty": 24360,
+      "parent": null,
+      "children": [],
+      "attachments": [],
+      "created_at": "2019-08-04T14:28:39.123Z",
+      "updated_at": "2026-02-16T12:47:24.913Z",
+      "exam": false,
+      "git_id": 1,
+      "repository": "19"
+    },
+    "campus": {
+      "id": 26,
+      "name": "Tokyo",
+      "time_zone": "Asia/Tokyo",
+      "language": {
+        "id": 13,
+        "name": "Japanese",
+        "identifier": "ja",
+        "created_at": "2019-11-15T13:34:10.581Z",
+        "updated_at": "2026-02-06T09:10:32.142Z"
+      },
+      "users_count": 6795,
+      "vogsphere_id": 17,
+      "country": "Japan",
+      "address": "Sumitomo Fudosan Roppongi Grand Tower 3-2-1 Roppongi Minato-ku reception: 24F",
+      "zip": "106-6224",
+      "city": "Tokyo",
+      "website": "https://42tokyo.jp",
+      "facebook": "https://www.facebook.com/42tokyo/",
+      "twitter": "https://twitter.com/42_tokyo",
+      "active": true,
+      "public": true,
+      "email_extension": "42tokyo.jp",
+      "default_hidden_phone": true
+    },
+    "cursus": {
+      "id": 21,
+      "created_at": "2019-07-29T08:45:17.896Z",
+      "name": "42cursus",
+      "slug": "42cursus",
+      "kind": "main"
+    },
+    "evaluations": [
+      {
+        "id": 2924,
+        "kind": "scale"
+      }
+    ],
+    "project_sessions_rules": [
+      {
+        "id": 190744,
+        "required": true,
+        "position": 12,
+        "params": [
+          {
+            "id": 144860,
+            "param_id": 44,
+            "project_sessions_rule_id": 190744,
+            "value": "ft_transcendence",
+            "created_at": "2025-12-12T11:03:51.834Z",
+            "updated_at": "2025-12-12T11:03:51.834Z"
+          },
+          {
+            "id": 144859,
+            "param_id": 45,
+            "project_sessions_rule_id": 190744,
+            "value": "1",
+            "created_at": "2025-12-12T11:03:51.820Z",
+            "updated_at": "2025-12-12T11:03:51.820Z"
+          }
+        ],
+        "rule": {
+          "id": 57,
+          "kind": "correction",
+          "name": "min projects validated",
+          "description": "have %{minimum} student who validated %{projects}",
+          "created_at": "2023-08-16T08:22:21.084Z",
+          "updated_at": "2026-02-16T10:28:00.654Z",
+          "slug": "correction-min-projects-validated",
+          "internal_name": "MinProjectsValidated"
+        }
+      },
+      {
+        "id": 196510,
+        "required": true,
+        "position": 1,
+        "params": [
+          {
+            "id": 150165,
+            "param_id": 2,
+            "project_sessions_rule_id": 196510,
+            "value": "4",
+            "created_at": "2026-02-06T03:46:18.894Z",
+            "updated_at": "2026-02-06T03:46:18.894Z"
+          },
+          {
+            "id": 150166,
+            "param_id": 3,
+            "project_sessions_rule_id": 196510,
+            "value": "5",
+            "created_at": "2026-02-06T03:46:18.900Z",
+            "updated_at": "2026-02-06T03:46:18.900Z"
+          }
+        ],
+        "rule": {
+          "id": 3,
+          "kind": "group_validation",
+          "name": "Group size between n and m",
+          "description": "contain between %{n} and %{m} students",
+          "created_at": "2014-12-22T23:28:19.682Z",
+          "updated_at": "2026-02-17T12:07:17.314Z",
+          "slug": "group_validation-group-size-between-n-and-m",
+          "internal_name": "GroupSizeBetweenNAndM"
+        }
+      },
+      {
+        "id": 188347,
+        "required": true,
+        "position": 6,
+        "params": [],
+        "rule": {
+          "id": 2,
+          "kind": "final_compilation",
+          "name": "Best mark",
+          "description": "take the best mark of all teams",
+          "created_at": "2014-12-17T23:51:09.326Z",
+          "updated_at": "2026-02-17T09:36:36.925Z",
+          "slug": "final_compilation-best-mark",
+          "internal_name": "BestMark"
+        }
+      },
+      {
+        "id": 188348,
+        "required": true,
+        "position": 7,
+        "params": [
+          {
+            "id": 142752,
+            "param_id": 34,
+            "project_sessions_rule_id": 188348,
+            "value": "42-to-42cursus-transfert common-core-rank-03",
+            "created_at": "2025-12-08T13:51:11.023Z",
+            "updated_at": "2025-12-08T13:51:11.023Z"
+          }
+        ],
+        "rule": {
+          "id": 44,
+          "kind": "correction",
+          "name": "%Quest1 or %Quest2 validated",
+          "description": "have validated one of %{quests}",
+          "created_at": "2019-12-18T11:40:41.130Z",
+          "updated_at": "2026-02-17T09:36:37.020Z",
+          "slug": "correction-quest1-or-quest2-validated",
+          "internal_name": "QuestOrQuestValidated"
+        }
+      },
+      {
+        "id": 188349,
+        "required": true,
+        "position": 8,
+        "params": [
+          {
+            "id": 142753,
+            "param_id": 32,
+            "project_sessions_rule_id": 188349,
+            "value": "ft_transcendence",
+            "created_at": "2025-12-08T13:51:11.096Z",
+            "updated_at": "2025-12-08T13:51:11.096Z"
+          }
+        ],
+        "rule": {
+          "id": 42,
+          "kind": "inscription",
+          "name": "Neither ongoing or validated",
+          "description": "not have those projects ongoing or validated: %{projects}",
+          "created_at": "2019-09-24T12:28:53.593Z",
+          "updated_at": "2026-02-16T13:02:23.671Z",
+          "slug": "inscription-neither-ongoing-or-validated",
+          "internal_name": "NeitherOngoingOrValidated"
+        }
+      },
+      {
+        "id": 188343,
+        "required": true,
+        "position": 2,
+        "params": [],
+        "rule": {
+          "id": 31,
+          "kind": "correction",
+          "name": "Last Close",
+          "description": "The corrector cannot evaluate a user more than once on the same project rendering. Gives priority to users who recently did this project.",
+          "created_at": "2015-12-06T17:37:00.494Z",
+          "updated_at": "2026-02-17T09:36:36.864Z",
+          "slug": "correction-last-close",
+          "internal_name": "LastClose"
+        }
+      },
+      {
+        "id": 188344,
+        "required": true,
+        "position": 3,
+        "params": [
+          {
+            "id": 142750,
+            "param_id": 28,
+            "project_sessions_rule_id": 188344,
+            "value": "7-0,14-1,21-2,35-3,50-5,100-30,150-90",
+            "created_at": "2025-12-08T13:51:10.805Z",
+            "updated_at": "2025-12-10T01:35:31.254Z"
+          }
+        ],
+        "rule": {
+          "id": 35,
+          "kind": "correction",
+          "name": "Matching delay",
+          "description": "be able to correct an user more than once after a specified number of days if correctors are scarce",
+          "created_at": "2016-12-05T12:29:19.410Z",
+          "updated_at": "2026-02-13T13:38:07.570Z",
+          "slug": "correction-matching-delay",
+          "internal_name": "MatchingDelay"
+        }
+      },
+      {
+        "id": 188345,
+        "required": true,
+        "position": 4,
+        "params": [],
+        "rule": {
+          "id": 21,
+          "kind": "correction",
+          "name": "On same campus",
+          "description": "be on the same campus",
+          "created_at": "2015-05-31T17:42:11.068Z",
+          "updated_at": "2026-02-17T09:36:36.879Z",
+          "slug": "correction-on-same-campus",
+          "internal_name": "OnSameCampus"
+        }
+      },
+      {
+        "id": 188346,
+        "required": true,
+        "position": 5,
+        "params": [
+          {
+            "id": 142751,
+            "param_id": 23,
+            "project_sessions_rule_id": 188346,
+            "value": "3",
+            "created_at": "2025-12-08T13:51:10.902Z",
+            "updated_at": "2025-12-08T13:51:10.902Z"
+          }
+        ],
+        "rule": {
+          "id": 29,
+          "kind": "retriable",
+          "name": "in days",
+          "description": "delay will be %{nbr_days}",
+          "created_at": "2015-10-18T18:59:06.099Z",
+          "updated_at": "2026-02-13T13:38:07.697Z",
+          "slug": "retriable-in-days",
+          "internal_name": "InDays"
+        }
+      },
+      {
+        "id": 188351,
+        "required": true,
+        "position": 9,
+        "params": [
+          {
+            "id": 142755,
+            "param_id": 31,
+            "project_sessions_rule_id": 188351,
+            "value": "common-core-rank-05",
+            "created_at": "2025-12-08T13:51:11.216Z",
+            "updated_at": "2025-12-08T13:51:11.216Z"
+          }
+        ],
+        "rule": {
+          "id": 41,
+          "kind": "inscription",
+          "name": "quests validated",
+          "description": "have finished quest(s) %{quests}",
+          "created_at": "2018-06-05T12:53:17.856Z",
+          "updated_at": "2026-02-16T12:47:37.762Z",
+          "slug": "inscription-quests-validated",
+          "internal_name": "QuestsValidated"
+        }
+      },
+      {
+        "id": 188352,
+        "required": true,
+        "position": 10,
+        "params": [
+          {
+            "id": 142756,
+            "param_id": 35,
+            "project_sessions_rule_id": 188352,
+            "value": "common-core",
+            "created_at": "2025-12-08T13:51:11.274Z",
+            "updated_at": "2025-12-08T13:51:11.274Z"
+          }
+        ],
+        "rule": {
+          "id": 45,
+          "kind": "inscription",
+          "name": "(%Quest1 or %Quest2) not validated",
+          "description": "not have validated any of quests %{quests}",
+          "created_at": "2019-12-18T17:07:09.599Z",
+          "updated_at": "2026-02-16T12:47:37.733Z",
+          "slug": "inscription-quest1-or-quest2-not-validated",
+          "internal_name": "QuestsNotValidated"
+        }
+      },
+      {
+        "id": 188353,
+        "required": true,
+        "position": 11,
+        "params": [
+          {
+            "id": 142757,
+            "param_id": 15,
+            "project_sessions_rule_id": 188353,
+            "value": "42cursus",
+            "created_at": "2025-12-08T13:51:11.333Z",
+            "updated_at": "2025-12-08T13:51:11.333Z"
+          }
+        ],
+        "rule": {
+          "id": 19,
+          "kind": "correction",
+          "name": "In cursus",
+          "description": "be in cursus %{cursus}",
+          "created_at": "2015-04-17T17:34:57.709Z",
+          "updated_at": "2026-02-17T09:36:37.032Z",
+          "slug": "correction-in-cursus",
+          "internal_name": "InCursus"
+        }
+      }
+    ]
+  }
+]

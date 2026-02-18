@@ -329,6 +329,85 @@ type Upload struct {
 	Name string `json:"name"`
 }
 
+// ProjectSessionDetail represents a full project session response including rules
+type ProjectSessionDetail struct {
+	ID                   int                   `json:"id"`
+	Solo                 bool                  `json:"solo"`
+	BeginAt              *time.Time            `json:"begin_at"`
+	EndAt                *time.Time            `json:"end_at"`
+	EstimateTime         string                `json:"estimate_time"`
+	DurationDays         *int                  `json:"duration_days"`
+	TerminatingAfter     *int                  `json:"terminating_after"`
+	ProjectID            int                   `json:"project_id"`
+	CampusID             int                   `json:"campus_id"`
+	CursusID             int                   `json:"cursus_id"`
+	CreatedAt            time.Time             `json:"created_at"`
+	UpdatedAt            time.Time             `json:"updated_at"`
+	MaxPeople            *int                  `json:"max_people"`
+	IsSubscriptable      bool                  `json:"is_subscriptable"`
+	Scales               []Scale               `json:"scales"`
+	Uploads              []Upload              `json:"uploads"`
+	ProjectSessionsRules []ProjectSessionRule  `json:"project_sessions_rules"`
+}
+
+// ProjectSessionRule represents a rule attached to a project session
+type ProjectSessionRule struct {
+	ID       int                      `json:"id"`
+	Required bool                     `json:"required"`
+	Position int                      `json:"position"`
+	Params   []ProjectSessionRuleParam `json:"params"`
+	Rule     RuleDefinition           `json:"rule"`
+}
+
+// ProjectSessionRuleParam represents a parameter of a session rule
+type ProjectSessionRuleParam struct {
+	ID                    int       `json:"id"`
+	ParamID               int       `json:"param_id"`
+	ProjectSessionsRuleID int       `json:"project_sessions_rule_id"`
+	Value                 string    `json:"value"`
+	CreatedAt             time.Time `json:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at"`
+}
+
+// RuleDefinition represents the kind and metadata of a rule
+type RuleDefinition struct {
+	ID           int       `json:"id"`
+	Kind         string    `json:"kind"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	Slug         string    `json:"slug"`
+	InternalName string    `json:"internal_name"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// Quest represents a 42 quest (progression checkpoint)
+type Quest struct {
+	ID           int        `json:"id"`
+	Name         string     `json:"name"`
+	Slug         string     `json:"slug"`
+	Kind         string     `json:"kind"`
+	InternalName string     `json:"internal_name"`
+	Description  string     `json:"description"`
+	CursusID     int        `json:"cursus_id"`
+	CampusID     *int       `json:"campus_id"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	GradeID      *int       `json:"grade_id"`
+	Position     int        `json:"position"`
+}
+
+// QuestUser represents a user's quest completion record
+type QuestUser struct {
+	ID          int        `json:"id"`
+	EndAt       *time.Time `json:"end_at"`
+	QuestID     int        `json:"quest_id"`
+	ValidatedAt *time.Time `json:"validated_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	Quest       Quest      `json:"quest"`
+}
+
 // PaginationMeta represents pagination metadata
 type PaginationMeta struct {
 	Count      int    `json:"count"`

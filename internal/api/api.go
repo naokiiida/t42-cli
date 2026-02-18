@@ -728,3 +728,105 @@ func (c *Client) ListCampusUsers(ctx context.Context, campusID int, opts *ListUs
 
 	return users, meta, nil
 }
+
+// GetProjectSessionDetail returns full project session detail including rules
+func (c *Client) GetProjectSessionDetail(ctx context.Context, sessionID int) (*ProjectSessionDetail, error) {
+	endpoint := fmt.Sprintf("/v2/project_sessions/%d", sessionID)
+	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var session ProjectSessionDetail
+	if err := c.handleResponse(resp, &session); err != nil {
+		return nil, err
+	}
+
+	return &session, nil
+}
+
+// ListProjectSessions returns project sessions for a project, optionally filtered by campus
+func (c *Client) ListProjectSessions(ctx context.Context, projectID int, campusID int) ([]ProjectSessionDetail, error) {
+	params := url.Values{}
+	if campusID > 0 {
+		params.Set("filter[campus_id]", strconv.Itoa(campusID))
+	}
+
+	endpoint := fmt.Sprintf("/v2/projects/%d/project_sessions?%s", projectID, params.Encode())
+	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var sessions []ProjectSessionDetail
+	if err := c.handleResponse(resp, &sessions); err != nil {
+		return nil, err
+	}
+
+	return sessions, nil
+}
+
+// ListUserQuestUsers returns quest completion records for a user
+func (c *Client) ListUserQuestUsers(ctx context.Context, userID int) ([]QuestUser, error) {
+	endpoint := fmt.Sprintf("/v2/users/%d/quests_users", userID)
+	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var questUsers []QuestUser
+	if err := c.handleResponse(resp, &questUsers); err != nil {
+		return nil, err
+	}
+
+	return questUsers, nil
+}
+
+// GetClientCredentialsToken obtains an access token using the client_credentials grant type.
+// This token has application-level access, which is needed for endpoints like project_sessions
+// that are not accessible with user-scoped tokens.
+func GetClientCredentialsToken(ctx context.Context, clientID, clientSecret string) (string, error) {
+	tokenURL := DefaultBaseURL + "/oauth/token"
+
+	body := map[string]string{
+		"grant_type":    "client_credentials",
+		"client_id":     clientID,
+		"client_secret": clientSecret,
+	}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal token request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return "", fmt.Errorf("failed to create token request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("token request failed: %w", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", closeErr)
+		}
+	}()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read token response: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("token request failed (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	var tokenResp Token
+	if err := json.Unmarshal(respBody, &tokenResp); err != nil {
+		return "", fmt.Errorf("failed to parse token response: %w", err)
+	}
+
+	return tokenResp.AccessToken, nil
+}
