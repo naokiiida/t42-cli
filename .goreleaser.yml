@@ -1,0 +1,60 @@
+version: 2
+
+project_name: t42
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: t42
+    main: .
+    binary: t42
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/naokiiida/t42-cli/cmd.version={{.Version}}
+      - -X github.com/naokiiida/t42-cli/cmd.commit={{.ShortCommit}}
+      - -X github.com/naokiiida/t42-cli/cmd.date={{.Date}}
+      - -X github.com/naokiiida/t42-cli/cmd.embeddedClientID={{.Env.FT_UID}}
+      - -X github.com/naokiiida/t42-cli/cmd.embeddedClientSecret={{.Env.FT_SECRET}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE*
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: naokiiida
+    name: t42-cli
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"

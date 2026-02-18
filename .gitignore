@@ -23,7 +23,6 @@ vendor/
 *.swp
 
 # CI/CD
-.goreleaser.yml
 dist/
 coverage.out
 

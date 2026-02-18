@@ -36,6 +36,13 @@ const (
 	defaultScope = "public"
 )
 
+// Embedded OAuth2 credentials (set via ldflags at build time)
+// These are used as fallback when no environment/file config is found.
+var (
+	embeddedClientID     string
+	embeddedClientSecret string
+)
+
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Authentication commands",
@@ -427,49 +434,54 @@ func runStatus(cmd *cobra.Command, args []string) error {
 
 func getOAuth2Config() (*config.DevelopmentSecrets, error) {
 	// Fallback chain for loading OAuth2 client secrets:
-	// 1. Development secrets (secret/.env) - for local development
-	// 2. XDG config directory (e.g., ~/.config/t42/secrets.env) - for deployed use
-	// 3. Environment variables (FT_UID, FT_SECRET) - for CI/CD or custom setups
+	// 1. Environment variables (FT_UID, FT_SECRET) - highest priority override
+	// 2. Development secrets (secret/.env) - for local development
+	// 3. XDG config directory (e.g., ~/.config/t42/secrets.env) - for user config
+	// 4. Build-time embedded credentials - for production release binaries
 
-	// Try development secrets first (if T42_ENV=development or secret/.env exists)
+	// Try environment variables first (allows user override)
+	clientID := os.Getenv("FT_UID")
+	clientSecret := os.Getenv("FT_SECRET")
+	if clientID != "" && clientSecret != "" {
+		return &config.DevelopmentSecrets{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			RedirectURL:  defaultRedirectURL,
+		}, nil
+	}
+
+	// Try development secrets (secret/.env)
 	if secrets, err := config.LoadDevelopmentSecrets(); err == nil {
 		return secrets, nil
 	}
 
-	// Try XDG config directory secrets (for deployed/production use)
+	// Try XDG config directory secrets
 	if secrets, err := config.LoadSecretsFromConfigDir(); err == nil {
 		return secrets, nil
 	}
 
-	// Fallback to environment variables
-	clientID := os.Getenv("FT_UID")
-	clientSecret := os.Getenv("FT_SECRET")
+	// Try build-time embedded credentials
+	if embeddedClientID != "" && embeddedClientSecret != "" {
+		return &config.DevelopmentSecrets{
+			ClientID:     embeddedClientID,
+			ClientSecret: embeddedClientSecret,
+			RedirectURL:  defaultRedirectURL,
+		}, nil
+	}
 
-	if clientID == "" || clientSecret == "" {
-		// Provide helpful error message with all possible locations
-		secretsPath, _ := config.GetSecretsFilePath()
-		return nil, fmt.Errorf(`OAuth2 configuration not found. Please set up client secrets in one of these ways:
+	// Nothing found - provide helpful error
+	secretsPath, _ := config.GetSecretsFilePath()
+	return nil, fmt.Errorf(`OAuth2 configuration not found. Please set up client secrets in one of these ways:
 
-1. For development: Create secret/.env with:
-   FT_UID=your_client_id
-   FT_SECRET=your_client_secret
-
-2. For deployed/production: Create %s with:
-   FT_UID=your_client_id
-   FT_SECRET=your_client_secret
-
-3. Or set environment variables:
+1. Set environment variables:
    export FT_UID=your_client_id
    export FT_SECRET=your_client_secret
 
-Get your OAuth2 credentials from: https://profile.intra.42.fr/oauth/applications`, secretsPath)
-	}
+2. Create %s with:
+   FT_UID=your_client_id
+   FT_SECRET=your_client_secret
 
-	return &config.DevelopmentSecrets{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  defaultRedirectURL,
-	}, nil
+Get your OAuth2 credentials from: https://profile.intra.42.fr/oauth/applications`, secretsPath)
 }
 
 func generateState() (string, error) {
